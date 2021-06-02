@@ -1,0 +1,14 @@
+{
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "files.associations": {
+    "sim7600.h": "c",
+    "sim800.h": "c",
+    "esp_modem.h": "c",
+    "gpio.h": "c",
+    "esp_log.h": "c",
+    "*.inc": "c",
+    "*.ipp": "c",
+    "esp_netif_ppp.h": "c"
+  },
+  "idf.portWin": "COM9"
+}
