@@ -99,6 +99,9 @@ static esp_err_t esp_dte_handle_line(esp_modem_dte_t *esp_dte) {
     MODEM_CHECK(dce, "DTE has not yet bind with DCE", err);
     const char *line = (const char *)(esp_dte->buffer);
     size_t len = strlen(line);
+
+    ESP_LOGI("AT RESP", "%s", line);
+
     /* Skip pure "\r\n" lines */
     if (len > 2 && !is_only_cr_lf(line, len)) {
         if (dce->handle_line == NULL) {
@@ -114,6 +117,7 @@ post_event_unknown:
     /* Send ESP_MODEM_EVENT_UNKNOWN signal to event loop */
     esp_event_post_to(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_MODEM_EVENT_UNKNOWN,
                       (void *)line, strlen(line) + 1, pdMS_TO_TICKS(100));
+    ESP_LOGE(MODEM_TAG, "%s", line);
 err:
     return err;
 }
@@ -286,7 +290,7 @@ static esp_err_t esp_modem_dte_send_cmd(modem_dte_t *dte, const char *command, u
     esp_err_t ret = ESP_FAIL;
     modem_dce_t *dce = dte->dce;
 
-    ESP_LOGD(MODEM_TAG, "AT CMD: %s", command);
+    ESP_LOGI("AT CMD", "%s", command);
 
     MODEM_CHECK(dce, "DTE has not yet bind with DCE", err);
     MODEM_CHECK(command, "command is NULL", err);
@@ -583,17 +587,17 @@ esp_err_t esp_modem_stop_ppp(modem_dte_t *dte) {
     MODEM_CHECK(dce, "DTE has not yet bind with DCE", err);
     esp_modem_dte_t *esp_dte = __containerof(dte, esp_modem_dte_t, parent);
 
-    ESP_LOGD(MODEM_TAG, "Enter command mode");
+    ESP_LOGI(MODEM_TAG, "Enter command mode");
     /* Enter command mode */
     MODEM_CHECK(dte->change_mode(dte, MODEM_COMMAND_MODE) == ESP_OK, "enter command mode failed", err);
     /* post PPP mode stopped event */
 
-    ESP_LOGD(MODEM_TAG, "Posting ppp stop event.");
+    ESP_LOGI(MODEM_TAG, "Posting ppp stop event.");
     esp_event_post_to(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_MODEM_EVENT_PPP_STOP, NULL, 0, 0);
     /* Hang up */
     //MODEM_CHECK(dce->hang_up(dce) == ESP_OK, "hang up failed", err);
     /* wait for the PPP mode to exit gracefully */
-    ESP_LOGD(MODEM_TAG, "Waiting for gracefull exit...?");
+    ESP_LOGI(MODEM_TAG, "Waiting for gracefull exit...?");
     if (xSemaphoreTake(esp_dte->exit_sem, pdMS_TO_TICKS(20000)) != pdTRUE) {
         ESP_LOGW(MODEM_TAG, "Failed to exit the PPP mode gracefully");
     }

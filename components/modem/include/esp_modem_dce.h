@@ -65,6 +65,7 @@ typedef struct esp_modem_dce esp_modem_dce_t;
 #define ATTACH_DENIED 3
 #define ATTACH_ROAMING 5
 #define ATTACH_HOME_NETWORK 1
+#define ATTACH_NOT_SEARCHING 0
 
 /**
  * @brief Working state of DCE

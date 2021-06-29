@@ -77,6 +77,9 @@ esp_err_t esp_modem_dce_handle_cbc(modem_dce_t *dce, const char *line) {
 
 esp_err_t esp_modem_dce_handle_exit_data_mode(modem_dce_t *dce, const char *line) {
     esp_err_t err = ESP_FAIL;
+
+    ESP_LOGI("EXIT DATA MODE", "Received: %s", line);
+
     if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
     } else if (strstr(line, MODEM_RESULT_CODE_NO_CARRIER)) {
@@ -188,7 +191,7 @@ esp_err_t esp_modem_dce_handle_cops(modem_dce_t *dce, const char *line) {
 esp_err_t esp_modem_dce_handle_creg(modem_dce_t *dce, const char *line) {
     esp_err_t err = ESP_FAIL;
 
-    //ESP_LOGI("AT CREG:", "%s", line);
+    // ESP_LOGI("AT CREG:", "%s", line);
 
     if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
@@ -303,7 +306,7 @@ esp_err_t esp_modem_dce_define_pdp_context(modem_dce_t *dce, uint32_t cid, const
     dce->handle_line = esp_modem_dce_handle_response_default;
     DCE_CHECK(dte->send_cmd(dte, command, MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK, "send command failed", err);
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "define pdp context failed", err);
-    ESP_LOGD(DCE_TAG, "define pdp context ok");
+    ESP_LOGI(DCE_TAG, "define pdp context ok");
     return ESP_OK;
 err:
     return ESP_FAIL;

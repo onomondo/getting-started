@@ -21,9 +21,22 @@ extern "C" {
 #include "esp_modem_dce_service.h"
 
 //power on module!
+
+#ifdef GEN_1
+
 #define RST_PIN 5
 #define PWR_PIN 4
 #define PWR_ON_PIN 23
+#define PULSE_ON 0
+#define PULSE_OFF 1
+
+#else
+
+#define PWR_PIN 27
+#define PULSE_ON 1
+#define PULSE_OFF 0
+
+#endif
 
 /**
  * @brief Create and initialize SIM800 object

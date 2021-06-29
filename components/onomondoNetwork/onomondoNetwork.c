@@ -24,6 +24,8 @@ esp_netif_t *esp_netif = NULL;
 modem_dte_t *dte = NULL;
 modem_dce_t *dce = NULL;
 
+float signalQuality = 0;
+
 int initialized = 0;
 int socket_ = -1;
 
@@ -118,7 +120,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t initCellular(enum supportedModems modem) {
+esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
@@ -129,10 +131,10 @@ esp_err_t initCellular(enum supportedModems modem) {
     esp_modem_dte_config_t config = ESP_MODEM_DTE_DEFAULT_CONFIG();
 
     /* setup UART specific configuration based on kconfig options */
-    config.tx_io_num = CONFIG_EXAMPLE_MODEM_UART_TX_PIN;
-    config.rx_io_num = CONFIG_EXAMPLE_MODEM_UART_RX_PIN;
-    config.rts_io_num = CONFIG_EXAMPLE_MODEM_UART_RTS_PIN;
-    config.cts_io_num = CONFIG_EXAMPLE_MODEM_UART_CTS_PIN;
+    config.tx_io_num = TX_PIN;
+    config.rx_io_num = RX_PIN;
+    config.rts_io_num = RTS_PIN;
+    config.cts_io_num = CTS_PIN;
     config.rx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE;
     config.tx_buffer_size = CONFIG_EXAMPLE_MODEM_UART_TX_BUFFER_SIZE;
     config.pattern_queue_size = CONFIG_EXAMPLE_MODEM_UART_PATTERN_QUEUE_SIZE;
@@ -168,19 +170,35 @@ esp_err_t initCellular(enum supportedModems modem) {
             break;
     }
 
+    if (dce == NULL)
+        return ESP_FAIL;
+
     assert(dce != NULL);
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
-    ESP_ERROR_CHECK(dce->store_profile(dce));
+    // ESP_ERROR_CHECK(dce->store_profile(dce));
 
-    ESP_ERROR_CHECK(dce->attach(dce));
+    dce->checkNetwork(dce);
+    if (dce->attached == ATTACH_NOT_SEARCHING) {
+        ESP_ERROR_CHECK(dce->attach(dce));
+    }
 
+    ESP_LOGI(TAG, "Module: %s", dce->name);
+
+    int tries = 0;
+    int errorCount = 0;
     while (dce->attached == ATTACH_SEARCHING) {
-        dce->checkNetwork(dce);
-        vTaskDelay(pdMS_TO_TICKS(200));
+        if (dce->checkNetwork(dce) != ESP_OK)
+            errorCount++;
+
+        if (errorCount > 10)
+            return ESP_FAIL;
+        vTaskDelay(pdMS_TO_TICKS(500));
+        ++tries;
+        if (tries > 700)
+            return ESP_FAIL;
     }
 
     /* Print Module ID, Operator, IMEI, IMSI */
-    ESP_LOGI(TAG, "Module: %s", dce->name);
     ESP_LOGI(TAG, "Operator: %s", dce->oper);
     ESP_LOGI(TAG, "IMEI: %s", dce->imei);
     ESP_LOGI(TAG, "IMSI: %s", dce->imsi);
@@ -188,6 +206,9 @@ esp_err_t initCellular(enum supportedModems modem) {
     uint32_t rssi = 0, ber = 0;
     ESP_ERROR_CHECK(dce->get_signal_quality(dce, &rssi, &ber));
     ESP_LOGI(TAG, "rssi: %d, ber: %d", rssi, ber);
+    signalQuality = rssi;
+    // ESP_LOGI(TAG, "Defining PDP...?");
+    // dce->define_pdp_context(dce, 1, "IP", "onomondo");
 
     esp_netif_attach(esp_netif, modem_netif_adapter);
     /* Wait for IP address */
@@ -195,6 +216,10 @@ esp_err_t initCellular(enum supportedModems modem) {
 
     initialized = 1;
     return ESP_OK;
+}
+
+int getSignalQuality() {
+    return signalQuality;
 }
 
 // handle internal
@@ -254,13 +279,33 @@ esp_err_t closeSocket(void) {
 esp_err_t detachAndPowerDown() {
     if (dce && dte) {
         ESP_LOGI(TAG, "Exit PPP");
-        ESP_ERROR_CHECK(esp_modem_stop_ppp(dte));
+        //ESP_ERROR_CHECK(esp_modem_stop_ppp(dte));
+
+        esp_err_t alive = esp_modem_stop_ppp(dte);
+
+        if (alive != ESP_OK) {
+            for (int i = 0; i < 5; i++) {
+                alive = esp_modem_dce_power_test(dce);
+                if (alive == ESP_OK)
+                    break;
+            }
+
+            if (alive != ESP_OK) {
+                //we assume modem is off at this point..
+                return ESP_OK;
+            }
+        }
+
+        //modem is alive..!
+        dce->power_down(dce);
+        return ESP_OK;
+
         ESP_LOGI(TAG, "Waiting for stop...");
         xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
-        ESP_ERROR_CHECK(dce->detach(dce));
-        ESP_ERROR_CHECK(dce->store_profile(dce));
+        //ESP_ERROR_CHECK(dce->detach(dce));
+        //ESP_ERROR_CHECK(dce->store_profile(dce));
         ESP_LOGI(TAG, "Soft power down");
-        ESP_ERROR_CHECK(dce->power_down(dce));
+        dce->power_down(dce);
         ESP_LOGI(TAG, "Power down");
         ESP_ERROR_CHECK(dce->deinit(dce));
     }

@@ -8,7 +8,14 @@
     "esp_log.h": "c",
     "*.inc": "c",
     "*.ipp": "c",
-    "esp_netif_ppp.h": "c"
+    "esp_netif_ppp.h": "c",
+    "nvs_flash.h": "c",
+    "onomondonetwork.h": "c",
+    "array": "c",
+    "string_view": "c",
+    "initializer_list": "c",
+    "utility": "c"
   },
-  "idf.portWin": "COM9"
+  "idf.portWin": "COM10",
+  "idf.flashType": "UART"
 }
