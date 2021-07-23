@@ -41,6 +41,8 @@ static const char *DCE_TAG = "sim800";
  */
 
 static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce);
+esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line);
+static esp_err_t sim800_check_PSM_support(modem_dce_t *dce);
 
 static esp_err_t sim800_handle_power_down(modem_dce_t *dce, const char *line) {
     // gpio_set_level(PWR_PIN, 0);
@@ -77,7 +79,7 @@ static esp_err_t sim800_check_sim(modem_dce_t *dce) {
     dce->handle_line = sim800_handle_cpin;
     DCE_CHECK(dte->send_cmd(dte, "AT+CPIN?\r", 1000) == ESP_OK, "send command failed", err);
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Cpin failed...", err);
-    ESP_LOGD(DCE_TAG, "power down ok");
+    ESP_LOGI(DCE_TAG, "Check SIM ok");
     return ESP_OK;
 err:
     return ESP_FAIL;
@@ -194,6 +196,137 @@ static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce) {
     return ESP_OK;
 }
 
+static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable) {  //we'll always allow PSM
+    modem_dte_t *dte = dce->dte;
+    //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
+    //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
+
+    sim800_check_PSM_support(dce);
+
+    dce->handle_line = esp_modem_dce_handle_response_default;
+
+    if (enable && !(dce->PSM))  //only set if not allready activated
+        dte->send_cmd(dte, "AT+CPSMS=1,,,\"01011111\",\"00000001\" \r", 500);
+    else if (!enable && dce->PSM)
+        dte->send_cmd(dte, "AT+CPSMS=0\r", 500);
+
+    dte->send_cmd(dte, "AT+CPSI?\r", 500);
+    return ESP_OK;
+}
+
+static esp_err_t sim800_set_eDRX(modem_dce_t *dce, uint8_t enable) {
+    modem_dte_t *dte = dce->dte;
+    //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
+    //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
+    dce->handle_line = esp_modem_dce_handle_response_default;
+
+    if (enable)
+        dte->send_cmd(dte, "AT+CEDRXS=1,4,\"0010\"\r", 500);
+    else
+        dte->send_cmd(dte, "AT+CEDRXS=0\r", 500);
+    return ESP_OK;
+}
+
+static esp_err_t sim800_check_PSM_support(modem_dce_t *dce) {
+    modem_dte_t *dte = dce->dte;
+    //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
+    //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
+    dce->handle_line = sim800_handle_PSM_check;
+    dte->send_cmd(dte, "AT+CPSMRDP\r", 500);
+
+    return ESP_OK;
+}
+
+esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line) {
+    esp_err_t err = ESP_FAIL;
+    esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
+    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
+        err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
+    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
+        err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
+    } else if (strncmp(line, "+CEDRXRDP: 0", strlen("+CEDRXRDP: 0")) == 0) {
+        // not supported.
+        dce->eDRX = false;
+
+        ESP_LOGI("eDRX CHECK", "Not supported");
+    } else {
+        // it is supported. We dont care about the timing currently, but it could be parsed at this point.
+        dce->eDRX = true;
+        ESP_LOGI("eDRX CHECK", "Supported");
+    }
+    err = ESP_OK;
+    return err;
+}
+
+esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line) {
+    esp_err_t err = ESP_FAIL;
+    esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
+    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
+        err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
+    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
+        err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
+    } else {
+        //parse response.
+        uint32_t mode, requested_active, requested_tau, network_active, Network_T3412_EXT_value, Network_T3412_value;
+        char buf[20];
+        int matched = sscanf(line, "+CPSMRDP: %d,%d,%d,%d,%d,%d", &mode, &requested_active, &requested_tau, &network_active, &Network_T3412_EXT_value, &Network_T3412_value);
+
+        ESP_LOGI("PSM CHECK", "%s", line);
+        ESP_LOGI("PSM CHECK", "%d,%d,%d,%d,%d,%d", mode, requested_active, requested_tau, network_active, Network_T3412_EXT_value, Network_T3412_value);
+        ESP_LOGI("PSM CHECK", "Active: %d", network_active);
+        if (matched < 5)
+            return ESP_FAIL;
+
+        if (network_active != 0) {
+            dce->PSM = true;
+        } else {
+            dce->PSM = false;
+        }
+    }
+
+    // if (strncmp(line, "+CEDRXRDP: 0", strlen("+CEDRXRDP: 0"))) {  //+CPSMRDP: 0,2,1116000,0,0,3600
+
+    //     // not supported.
+    //     dce->PSM = false;
+    // } else {
+    //     // it is supported. We dont care about the timing currently, but it could be parsed at this point.
+    //     dce->PSM = true;
+    // }
+    err = ESP_OK;
+    return err;
+}
+
+static esp_err_t sim800_check_eDRX_support(modem_dce_t *dce) {
+    modem_dte_t *dte = dce->dte;
+    dce->handle_line = sim800_handle_eDRX_check;
+    dte->send_cmd(dte, "AT+CEDRXRDP\r", 500);
+
+    return ESP_OK;
+}
+
+esp_err_t esp_modem_enable_eDRX(modem_dce_t *dce, uint8_t enable) {
+    //be sure that we are attached..!
+
+    esp_err_t err = sim800_set_eDRX(dce, enable);
+
+    err = sim800_check_eDRX_support(dce);
+
+    if (err == ESP_OK && dce->eDRX)
+        return ESP_OK;
+    else
+        return ESP_FAIL;
+}
+
+esp_err_t esp_modem_enable_PSM(modem_dce_t *dce, uint8_t enable) {
+    //be sure that we are attached..!
+
+    esp_err_t err = sim800_set_PSM_param(dce, enable);
+
+    err = sim800_check_PSM_support(dce);
+
+    return err;
+}
+
 /**
  * @brief Deinitialize SIM800 object
  *
@@ -236,8 +369,15 @@ modem_dce_t *sim800_init(modem_dte_t *dte) {
     esp_modem_dce->parent.checkNetwork = esp_modem_dce_get_check_attach;
     esp_modem_dce->parent.attach = esp_modem_dce_attach;
     esp_modem_dce->parent.detach = esp_modem_dce_detach;
-
+    esp_modem_dce->parent.set_default_bands = esp_modem_dce_set_default_bands;
+    esp_modem_dce->parent.enable_psm = esp_modem_enable_PSM;
+    esp_modem_dce->parent.enable_edrx = esp_modem_enable_eDRX;
     ESP_LOGI(DCE_TAG, "PWR pin %u", PWR_PIN);
+
+    esp_modem_dce->parent.eDRX = false;
+    esp_modem_dce->parent.PSM = false;
+    esp_modem_dce->parent.psm_enter_notified = false;
+    esp_modem_dce->parent.power_down_notified = false;
 
     gpio_config_t pinCfg;
     pinCfg.mode = GPIO_MODE_OUTPUT;

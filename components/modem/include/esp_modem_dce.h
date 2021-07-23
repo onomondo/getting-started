@@ -88,6 +88,10 @@ struct modem_dce {
     char oper[MODEM_MAX_OPERATOR_LENGTH]; /*!< Operator name */
     uint8_t act;                          /*!< Access technology */
     unsigned int attached;
+    bool eDRX;
+    bool PSM;
+    bool psm_enter_notified;
+    bool power_down_notified;
     const char *prompt;                                                               /*!< Modem prompt string */
     modem_state_t state;                                                              /*!< Modem working state */
     modem_mode_t mode;                                                                /*!< Working mode */
@@ -110,6 +114,9 @@ struct modem_dce {
     esp_err_t (*checkNetwork)(modem_dce_t *dce);
     esp_err_t (*attach)(modem_dce_t *dce);
     esp_err_t (*detach)(modem_dce_t *dce);
+    esp_err_t (*set_default_bands)(modem_dce_t *dce);
+    esp_err_t (*enable_psm)(modem_dce_t *dce, uint8_t enable);
+    esp_err_t (*enable_edrx)(modem_dce_t *dce, uint8_t enable);
 };
 
 /**

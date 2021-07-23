@@ -39,27 +39,6 @@ static esp_err_t default_handle(modem_dce_t *dce, const char *line) {
     return err;
 }
 
-static esp_err_t example_handle_cmgs(modem_dce_t *dce, const char *line) {
-    esp_err_t err = ESP_FAIL;
-    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
-        err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
-    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
-        err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
-    } else if (!strncmp(line, "+CMGS", strlen("+CMGS"))) {
-        err = ESP_OK;
-    }
-    return err;
-}
-
-static void parseUnknownLines(modem_dce_t *dce, const char *data) {
-    //parse the unknown line..!
-
-    // some important ones include CREG updates
-
-    // for some cases we are very interested in PSM status,
-    ESP_LOGD(TAG, "Parsin additional line: %s", data);
-}
-
 static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     switch (event_id) {
         case ESP_MODEM_EVENT_PPP_START:
@@ -70,8 +49,6 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
             xEventGroupSetBits(event_group, STOP_BIT);
             break;
         case ESP_MODEM_EVENT_UNKNOWN:
-            //ESP_LOGW(TAG, "Unknow line received: %s", (char *)event_data);
-            parseUnknownLines(dce, (char *)event_data);
             break;
         default:
             break;
@@ -178,12 +155,14 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
     dce->checkNetwork(dce);
-    if (dce->attached == ATTACH_NOT_SEARCHING) {
+
+    if (dce->attached != ATTACH_ROAMING) {
         ESP_ERROR_CHECK(dce->attach(dce));
     }
 
     ESP_LOGI(TAG, "Module: %s", dce->name);
 
+    //wait for modem to attach.
     int tries = 0;
     int errorCount = 0;
     while (dce->attached == ATTACH_SEARCHING) {
@@ -207,8 +186,12 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     ESP_ERROR_CHECK(dce->get_signal_quality(dce, &rssi, &ber));
     ESP_LOGI(TAG, "rssi: %d, ber: %d", rssi, ber);
     signalQuality = rssi;
-    // ESP_LOGI(TAG, "Defining PDP...?");
-    // dce->define_pdp_context(dce, 1, "IP", "onomondo");
+
+    // setup psm and edrx
+    // In this case PSM does not add any value, as the modem is quite slow to boot.
+    // Furthermore, we can tear down the connection quicker by toggling power with the powerpin.
+    dce->enable_edrx(dce, 1);
+    dce->enable_psm(dce, 0);
 
     esp_netif_attach(esp_netif, modem_netif_adapter);
     /* Wait for IP address */
@@ -233,7 +216,7 @@ esp_err_t openSocket(char *host, int port) {
     addr.sin_family = AF_INET;
     addr.sin_port = lwip_htons(port);
 
-    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
     if (sock < 0) {
         ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
         return ESP_FAIL;
@@ -276,43 +259,6 @@ esp_err_t closeSocket(void) {
     return ESP_OK;
 }
 
-esp_err_t detachAndPowerDown() {
-    if (dce && dte) {
-        ESP_LOGI(TAG, "Exit PPP");
-        //ESP_ERROR_CHECK(esp_modem_stop_ppp(dte));
-
-        esp_err_t alive = esp_modem_stop_ppp(dte);
-
-        if (alive != ESP_OK) {
-            for (int i = 0; i < 5; i++) {
-                alive = esp_modem_dce_power_test(dce);
-                if (alive == ESP_OK)
-                    break;
-            }
-
-            if (alive != ESP_OK) {
-                //we assume modem is off at this point..
-                return ESP_OK;
-            }
-        }
-
-        //modem is alive..!
-        dce->power_down(dce);
-        return ESP_OK;
-
-        ESP_LOGI(TAG, "Waiting for stop...");
-        xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
-        //ESP_ERROR_CHECK(dce->detach(dce));
-        //ESP_ERROR_CHECK(dce->store_profile(dce));
-        ESP_LOGI(TAG, "Soft power down");
-        dce->power_down(dce);
-        ESP_LOGI(TAG, "Power down");
-        ESP_ERROR_CHECK(dce->deinit(dce));
-    }
-
-    return ESP_OK;
-}
-
 esp_err_t killandclean() {
     // if (initialized){
 
@@ -322,5 +268,36 @@ esp_err_t killandclean() {
 
     closeSocket();
 
+    return ESP_OK;
+}
+
+esp_err_t forcePowerDown() {
+    //if psm is supported, do a soft power down
+    if (dce->PSM) {
+        //we should wait a bit for it to enter...
+        if (dce && dte) {
+            ESP_LOGI(TAG, "Exit PPP");
+            esp_err_t alive = esp_modem_stop_ppp(dte);
+            ESP_LOGI(TAG, "Waiting for stop...");
+
+            // we just wait for the psm enter notification...
+            // xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
+
+            int i = 0;
+            while (!dce->psm_enter_notified && i < 50) {
+                vTaskDelay(pdMS_TO_TICKS(200));
+                ++i;
+            }
+
+            if (dce->psm_enter_notified) {
+                return ESP_OK;
+            }
+        }
+
+        // delay for now but status should be captured by modem.
+    }
+
+    //no psm or we never get the psm enter notification. Toggle pin to power down..
+    dce->power_down(dce);
     return ESP_OK;
 }

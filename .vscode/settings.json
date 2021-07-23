@@ -14,8 +14,11 @@
     "array": "c",
     "string_view": "c",
     "initializer_list": "c",
-    "utility": "c"
+    "utility": "c",
+    "accelerometer.h": "c",
+    "cstring": "c"
   },
   "idf.portWin": "COM10",
-  "idf.flashType": "UART"
+  "idf.flashType": "UART",
+  "editor.defaultFormatter": "ms-vscode.cpptools"
 }

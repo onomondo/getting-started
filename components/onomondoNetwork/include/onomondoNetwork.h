@@ -20,10 +20,6 @@ enum supportedModems {
     SIM7xxx
 };
 
-//maybe...
-struct cellular_config {
-};
-
 // Supported modems: SIM800, SIM7xxx(TODO). A full modem init should be issues at first boot (TODO).
 esp_err_t initCellular(enum supportedModems modem, bool fullModemInit);
 
@@ -34,8 +30,8 @@ esp_err_t sendData(char* data, int len, int timeout);
 
 esp_err_t closeSocket(void);
 
-esp_err_t detachAndPowerDown();
-
 esp_err_t killandclean();
 
 int getSignalQuality();
+
+esp_err_t forcePowerDown();

@@ -106,7 +106,16 @@ static esp_err_t esp_dte_handle_line(esp_modem_dte_t *esp_dte) {
     if (len > 2 && !is_only_cr_lf(line, len)) {
         if (dce->handle_line == NULL) {
             /* Received an asynchronous line, but no handler waiting this this */
-            ESP_LOGD(MODEM_TAG, "No handler for line: %s", line);
+            ESP_LOGI(MODEM_TAG, "No handler for line: %s", line);
+
+            if (strstr(line, "NORMAL POWER")) {
+                dce->power_down_notified = true;
+                ESP_LOGI(MODEM_TAG, "Power down notified");
+            } else if (strstr(line, "ENTER PSM")) {
+                dce->psm_enter_notified = true;
+                ESP_LOGI(MODEM_TAG, "PSM enter notified");
+            }
+
             err = ESP_OK; /* Not an error, just propagate the line to user handler */
             goto post_event_unknown;
         }

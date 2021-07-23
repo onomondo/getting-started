@@ -398,9 +398,9 @@ err:
 esp_err_t esp_modem_dce_attach(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = esp_modem_dce_handle_response_default;
-    DCE_CHECK(dte->send_cmd(dte, "AT+COPS=0\r", MODEM_COMMAND_TIMEOUT_HANG_UP) == ESP_OK, "send command failed", err);
+    DCE_CHECK(dte->send_cmd(dte, "AT+COPS=4,2,\"23801\",7\r", 25000) == ESP_OK, "send command failed", err);
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Could not start attach", err);
-    ESP_LOGD(DCE_TAG, "Auto attach OK");
+    ESP_LOGI(DCE_TAG, "Auto attach OK");
     return ESP_OK;
 err:
     return ESP_FAIL;
@@ -408,10 +408,22 @@ err:
 esp_err_t esp_modem_dce_detach(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = esp_modem_dce_handle_response_default;
-    DCE_CHECK(dte->send_cmd(dte, "AT+COPS=2\r", MODEM_COMMAND_TIMEOUT_HANG_UP) == ESP_OK, "send command failed", err);
+    DCE_CHECK(dte->send_cmd(dte, "AT+COPS=2\r", 500) == ESP_OK, "send command failed", err);
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Could not start attach", err);
     ESP_LOGD(DCE_TAG, "Auto attach OK");
     return ESP_OK;
 err:
+    return ESP_FAIL;
+}
+
+esp_err_t esp_modem_dce_set_default_bands(modem_dce_t *dce) {
+    modem_dte_t *dte = dce->dte;
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    DCE_CHECK(dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\"=3,8,20\r", 500) == ESP_OK, "send command failed", err);
+    DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Failed to set bands", err);
+    ESP_LOGD(DCE_TAG, "Set default bands OK");
+    return ESP_OK;
+err:
+    ESP_LOGI(DCE_TAG, "Failed to set the bands ...... ");
     return ESP_FAIL;
 }

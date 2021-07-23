@@ -9,6 +9,8 @@
 EventGroupHandle_t eventGroup = NULL;
 EventBits_t touch_bit;
 
+int64_t timestamp = 0;
+
 void touchCallback(void* arg) {
     uint32_t pad_intr = touch_pad_get_status();
     //clear interrupt
@@ -18,8 +20,12 @@ void touchCallback(void* arg) {
 
         BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
         // ESP_LOGI(TAG, "Touch pad status: %d", pad_intr);
-        if (touch)
+        int64_t now = esp_timer_get_time();
+        if (touch && (now - timestamp > 500000))  //.5 sec debounce
+        {
+            timestamp = now;
             xEventGroupSetBitsFromISR(eventGroup, touch_bit, &pxHigherPriorityTaskWoken);
+        }
     }
 }
 
@@ -50,7 +56,7 @@ esp_err_t touchpad_init(EventGroupHandle_t* eventgroup, EventBits_t eventBits) {
 
     ESP_LOGI(TAG, "test init: touch pad [%d] val is %d", TOUCH_PAD_NUM6, touch_value);
     //set interrupt threshold.
-    ESP_ERROR_CHECK(touch_pad_set_thresh(TOUCH_PAD_NUM6, touch_value * 2 / 3));
+    ESP_ERROR_CHECK(touch_pad_set_thresh(TOUCH_PAD_NUM6, touch_value * 1 / 3));
 
     touch_pad_isr_register(touchCallback, NULL);
     return touch_pad_intr_enable();

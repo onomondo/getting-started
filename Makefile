@@ -3,6 +3,6 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := pppos_client
+PROJECT_NAME := onomondo_getting_started
 
 include $(IDF_PATH)/make/project.mk

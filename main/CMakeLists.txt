@@ -1,2 +1,2 @@
-idf_component_register(SRCS "pppos_client_main.c"
+idf_component_register(SRCS "onomondo_getting_started.c"
                     INCLUDE_DIRS ".")

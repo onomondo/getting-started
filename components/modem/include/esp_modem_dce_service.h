@@ -302,6 +302,7 @@ esp_err_t esp_modem_dce_power_test(modem_dce_t *dce);
 
 esp_err_t esp_modem_dce_attach(modem_dce_t *dce);
 esp_err_t esp_modem_dce_detach(modem_dce_t *dce);
+esp_err_t esp_modem_dce_set_default_bands(modem_dce_t *dce);
 
 #ifdef __cplusplus
 }
