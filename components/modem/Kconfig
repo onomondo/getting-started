@@ -2,7 +2,7 @@ menu "ESP-MODEM"
 
     config EXAMPLE_COMPONENT_MODEM_APN
         string "Set Access Point Name (APN)"
-        default "CMNET"
+        default "onomondo"
         help
             Logical name which is used to select the GGSN or the external packet data network.
 

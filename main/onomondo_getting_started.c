@@ -61,7 +61,7 @@ float get_batt_voltage();
 void fault_state();
 
 void app_main(void) {
-    esp_deep_sleep_start();
+    // esp_deep_sleep_start();
 
     // Initialize NVS. This will be needed for OTA portion...
     esp_err_t err = nvs_flash_init();

@@ -216,7 +216,7 @@ esp_err_t openSocket(char *host, int port) {
     addr.sin_family = AF_INET;
     addr.sin_port = lwip_htons(port);
 
-    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (sock < 0) {
         ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
         return ESP_FAIL;
