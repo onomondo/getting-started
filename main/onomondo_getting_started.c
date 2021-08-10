@@ -23,19 +23,23 @@
 #define LED_1 4
 #define LED_2 5
 
-enum EVENT_BITS {
+enum EVENT_BITS
+{
     TOUCH_EVENT = BIT0
 };
 
-enum NET_STATUS {
+enum NET_STATUS
+{
     DETACHED,
     ATTACHED,
     IP,
     TRANSMITTING
 };
 
-//Global var. for app state.
-volatile struct {
+// Global var. for app state.
+// probably not suitable for atomic writes....
+volatile struct
+{
     enum NET_STATUS net_status;
     uint8_t error_state;
 } app_state;
@@ -44,15 +48,13 @@ volatile struct {
 static EventGroupHandle_t eventGroup = NULL;
 
 //ADC characteristics -> used for calib and conversion.
-esp_adc_cal_characteristics_t* adc_char;
+esp_adc_cal_characteristics_t *adc_char;
 
 //ESP log tag
-static const char* TAG = "main";
-
-// RTC_DATA_ATTR int wake_count;  //this will keep the mem. section powered no though... That is not really something we want..
+static const char *TAG = "main";
 
 //threads
-void led_task(void* param);
+void led_task(void *param);
 
 //function prototypes
 void powerOff(uint32_t RTCSleepInS);
@@ -60,12 +62,14 @@ void init_adc();
 float get_batt_voltage();
 void fault_state();
 
-void app_main(void) {
+void app_main(void)
+{
     // esp_deep_sleep_start();
 
     // Initialize NVS. This will be needed for OTA portion...
     esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
         // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
         // partition table. This size mismatch may cause NVS initialization to fail.
         // 2.NVS partition contains data in new format and cannot be recognized by this version of code.
@@ -79,16 +83,17 @@ void app_main(void) {
     init_adc();
     float batt = get_batt_voltage();
 
-    if (batt < 3.0 && batt > 2.5) {
-        //low batt...
-        ESP_LOGI(TAG, "Low battery: %f", batt);
+    // if low bat is detected go to deep sleep.
+    // device wont wake up before connected to a charger
+    if (batt < 3.0 && batt > 2.5)
+    {
 
-        //must be plugged into charge port to wakeup again
+        ESP_LOGI(TAG, "Low battery: %f", batt);
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
         esp_deep_sleep_start();
     }
 
-    //cpu clock config. w. dynamic freq. scaling.
+    // cpu clock config. w. dynamic freq. scaling.
     // esp_pm_config_esp32_t conf = {.max_freq_mhz = 40, .min_freq_mhz = 10, .light_sleep_enable = 0};
     int freq = esp_clk_cpu_freq() / 1000000;
     ESP_LOGI(TAG, "Cpu freq: %d MhZ", freq);
@@ -97,6 +102,7 @@ void app_main(void) {
     app_state.net_status = DETACHED;
     app_state.error_state = 0;
 
+    // handle the output
     TaskHandle_t xHandle = NULL;
     xTaskCreate(led_task, "LED_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandle);
 
@@ -129,7 +135,8 @@ void app_main(void) {
 
     app_state.net_status = IP;
 
-    while (1) {
+    while (1)
+    {
         EventBits_t uxBits;
         const TickType_t xTicksToWait = 15000 / portTICK_PERIOD_MS;
 
@@ -138,21 +145,25 @@ void app_main(void) {
         if (!(uxBits & TOUCH_EVENT))
             break;
 
-        if (status == ESP_OK) {
+        if (status == ESP_OK)
+        {
             tmp_read(&temp, &hum);
             float signal = getSignalQuality();
             float battery = get_batt_voltage();
 
-            char payload[100];  // = "Hello from onomondo...!";
+            char payload[100]; // = "Hello from onomondo...!";
 
             sprintf(payload, "{\"battery\": %f,\"signal\": %f,\"temperature\": %f}", battery, signal, temp);
             app_state.net_status = TRANSMITTING;
             status = sendData(payload, strlen(payload), 0);
 
             app_state.net_status = IP;
-            if (status == ESP_OK) {
+            if (status == ESP_OK)
+            {
                 ESP_LOGI("Transmit", "%s", payload);
-            } else {
+            }
+            else
+            {
                 ESP_LOGE(TAG, "Failed to transmit...");
                 app_state.error_state = 1;
                 vTaskDelay(pdMS_TO_TICKS(500));
@@ -169,7 +180,8 @@ void app_main(void) {
     powerOff(0);
 }
 
-void powerOff(uint32_t RTCSleepInS) {
+void powerOff(uint32_t RTCSleepInS)
+{
     // detachAndPowerDown();
     forcePowerDown();
     // ++wake_count;
@@ -182,8 +194,9 @@ void powerOff(uint32_t RTCSleepInS) {
     uint64_t mask = (uint64_t)1 << 34;
     esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_HIGH);
     // esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
-    if (RTCSleepInS) {
-        esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000);  // 10 secs
+    if (RTCSleepInS)
+    {
+        esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000); // 10 secs
     }
 
     gpio_set_level(LED_LOGO, 0);
@@ -193,7 +206,8 @@ void powerOff(uint32_t RTCSleepInS) {
     esp_deep_sleep_start();
 }
 
-void led_task(void* param) {
+void led_task(void *param)
+{
     //figure out the state of the connection and/or error state.
 
     gpio_config_t pinCfg;
@@ -211,16 +225,21 @@ void led_task(void* param) {
     bool status_led = 0, error_led = 0;
     uint32_t timing = 0;
 
-    while (1) {
+    while (1)
+    {
         error = app_state.error_state;
         status = app_state.net_status;
 
         //error led
-        if (error) {
-            if (timing % 8 == 0) {
-                error_led = error_led ? 0 : 1;  //flip at fixed interval...
+        if (error)
+        {
+            if (timing % 8 == 0)
+            {
+                error_led = error_led ? 0 : 1; //flip at fixed interval...
             }
-        } else {
+        }
+        else
+        {
             error_led = 0;
         }
 
@@ -228,21 +247,22 @@ void led_task(void* param) {
 
         status_led = 0;
 
-        switch (status) {
-            case DETACHED:
-                status_led = timing % 20 == 0 ? 1 : 0;
-                break;
-            case ATTACHED:
-                status_led = timing % 10 == 0 ? 1 : 0;
-                break;
-            case IP:
-                status_led = 1;
-                break;
-            case TRANSMITTING:
-                status_led = timing % 2 == 0 ? 1 : 0;
-                break;
-            default:
-                break;
+        switch (status)
+        {
+        case DETACHED:
+            status_led = timing % 20 == 0 ? 1 : 0;
+            break;
+        case ATTACHED:
+            status_led = timing % 10 == 0 ? 1 : 0;
+            break;
+        case IP:
+            status_led = 1;
+            break;
+        case TRANSMITTING:
+            status_led = timing % 2 == 0 ? 1 : 0;
+            break;
+        default:
+            break;
         }
 
         gpio_set_level(LED_2, error_led);
@@ -254,7 +274,8 @@ void led_task(void* param) {
     }
 }
 
-void init_adc() {
+void init_adc()
+{
     //ADC1_CH4
     adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_4);
     adc_char = calloc(1, sizeof(esp_adc_cal_characteristics_t));
@@ -263,13 +284,15 @@ void init_adc() {
     adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
 }
 
-float get_batt_voltage() {
+float get_batt_voltage()
+{
     int raw = adc1_get_raw(ADC1_CHANNEL_4);
 
-    return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0;  // x2 due to voltage division..
+    return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0; // x2 due to voltage division..
 }
 
-void fault_state() {
+void fault_state()
+{
     app_state.error_state = 1;
     vTaskDelay(pdMS_TO_TICKS(400));
     powerOff(0);

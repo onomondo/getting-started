@@ -17,7 +17,6 @@ static const char *TAG = "cellular";
 static EventGroupHandle_t event_group = NULL;
 static const int CONNECT_BIT = BIT0;
 static const int STOP_BIT = BIT1;
-// static const int GOT_DATA_BIT = BIT2;
 
 void *modem_netif_adapter = NULL;
 esp_netif_t *esp_netif = NULL;
@@ -27,38 +26,50 @@ modem_dce_t *dce = NULL;
 float signalQuality = 0;
 
 int initialized = 0;
+
+// internal ref for the socket.
+// for ease of use this is kept private to the 'user'
+
 int socket_ = -1;
 
-static esp_err_t default_handle(modem_dce_t *dce, const char *line) {
+static esp_err_t default_handle(modem_dce_t *dce, const char *line)
+{
     esp_err_t err = ESP_FAIL;
-    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
+    if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
+    {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
-    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
+    }
+    else if (strstr(line, MODEM_RESULT_CODE_ERROR))
+    {
         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
     }
     return err;
 }
 
-static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-    switch (event_id) {
-        case ESP_MODEM_EVENT_PPP_START:
-            ESP_LOGI(TAG, "Modem PPP Started");
-            break;
-        case ESP_MODEM_EVENT_PPP_STOP:
-            ESP_LOGI(TAG, "Modem PPP Stopped");
-            xEventGroupSetBits(event_group, STOP_BIT);
-            break;
-        case ESP_MODEM_EVENT_UNKNOWN:
-            break;
-        default:
-            break;
+static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    switch (event_id)
+    {
+    case ESP_MODEM_EVENT_PPP_START:
+        ESP_LOGI(TAG, "Modem PPP Started");
+        break;
+    case ESP_MODEM_EVENT_PPP_STOP:
+        ESP_LOGI(TAG, "Modem PPP Stopped");
+        xEventGroupSetBits(event_group, STOP_BIT);
+        break;
+    case ESP_MODEM_EVENT_UNKNOWN:
+        break;
+    default:
+        break;
     }
 }
 
 static void on_ppp_changed(void *arg, esp_event_base_t event_base,
-                           int32_t event_id, void *event_data) {
+                           int32_t event_id, void *event_data)
+{
     ESP_LOGI(TAG, "PPP state changed event %d", event_id);
-    if (event_id == NETIF_PPP_ERRORUSER) {
+    if (event_id == NETIF_PPP_ERRORUSER)
+    {
         /* User interrupted event from esp-netif */
         esp_netif_t *netif = *(esp_netif_t **)event_data;
         ESP_LOGI(TAG, "User interrupted event from netif:%p", netif);
@@ -66,9 +77,11 @@ static void on_ppp_changed(void *arg, esp_event_base_t event_base,
 }
 
 static void on_ip_event(void *arg, esp_event_base_t event_base,
-                        int32_t event_id, void *event_data) {
+                        int32_t event_id, void *event_data)
+{
     ESP_LOGD(TAG, "IP event! %d", event_id);
-    if (event_id == IP_EVENT_PPP_GOT_IP) {
+    if (event_id == IP_EVENT_PPP_GOT_IP)
+    {
         esp_netif_dns_info_t dns_info;
 
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
@@ -87,9 +100,13 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         xEventGroupSetBits(event_group, CONNECT_BIT);
 
         ESP_LOGI(TAG, "GOT ip event!!!");
-    } else if (event_id == IP_EVENT_PPP_LOST_IP) {
+    }
+    else if (event_id == IP_EVENT_PPP_LOST_IP)
+    {
         ESP_LOGI(TAG, "Modem Disconnect from PPP Server");
-    } else if (event_id == IP_EVENT_GOT_IP6) {
+    }
+    else if (event_id == IP_EVENT_GOT_IP6)
+    {
         ESP_LOGI(TAG, "GOT IPv6 event!");
 
         ip_event_got_ip6_t *event = (ip_event_got_ip6_t *)event_data;
@@ -97,7 +114,8 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
+esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
+{
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
@@ -134,17 +152,18 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     modem_netif_adapter = esp_modem_netif_setup(dte);
     esp_modem_netif_set_default_handlers(modem_netif_adapter, esp_netif);
 
-    switch (modem) {
-        case SIM800:
-            dce = sim800_init(dte);
-            break;
-        case SIM7xxx:
-            dce = sim7600_init(dte);
-            break;
-        default:
-            killandclean();
-            return ESP_FAIL;
-            break;
+    switch (modem)
+    {
+    case SIM800:
+        dce = sim800_init(dte);
+        break;
+    case SIM7xxx:
+        dce = sim7600_init(dte);
+        break;
+    default:
+        killandclean();
+        return ESP_FAIL;
+        break;
     }
 
     if (dce == NULL)
@@ -156,7 +175,8 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
 
     dce->checkNetwork(dce);
 
-    if (dce->attached != ATTACH_ROAMING) {
+    if (dce->attached != ATTACH_ROAMING)
+    {
         ESP_ERROR_CHECK(dce->attach(dce));
     }
 
@@ -165,7 +185,8 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     //wait for modem to attach.
     int tries = 0;
     int errorCount = 0;
-    while (dce->attached == ATTACH_SEARCHING) {
+    while (dce->attached == ATTACH_SEARCHING)
+    {
         if (dce->checkNetwork(dce) != ESP_OK)
             errorCount++;
 
@@ -201,13 +222,16 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit) {
     return ESP_OK;
 }
 
-int getSignalQuality() {
+int getSignalQuality()
+{
     return signalQuality;
 }
 
 // handle internal
-esp_err_t openSocket(char *host, int port) {
-    if (socket_ != -1) {
+esp_err_t openSocket(char *host, int port)
+{
+    if (socket_ != -1)
+    {
         return ESP_FAIL;
     }
 
@@ -217,7 +241,8 @@ esp_err_t openSocket(char *host, int port) {
     addr.sin_port = lwip_htons(port);
 
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    if (sock < 0) {
+    if (sock < 0)
+    {
         ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
         return ESP_FAIL;
     }
@@ -226,7 +251,8 @@ esp_err_t openSocket(char *host, int port) {
     socket_ = sock;
     int err = connect(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
 
-    if (err != 0) {
+    if (err != 0)
+    {
         ESP_LOGE(TAG, "Socket unable to connect: errno %d", errno);
         closeSocket();
         return ESP_FAIL;
@@ -235,69 +261,74 @@ esp_err_t openSocket(char *host, int port) {
     return ESP_OK;
 }
 
-esp_err_t sendData(char *data, int len, int timeout) {
-    if (socket_ < 1) {
+esp_err_t sendData(char *data, int len, int timeout)
+{
+    if (socket_ < 1)
+    {
         return ESP_FAIL;
     }
 
     if (!data)
         return ESP_FAIL;
 
+    //blocking socket api.
     int err = send(socket_, data, len, 0);
 
-    if (err < 0) {
+    if (err < 0)
+    {
         ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
         return ESP_FAIL;
     }
     return ESP_OK;
 }
 
-esp_err_t closeSocket(void) {
+esp_err_t closeSocket(void)
+{
     shutdown(socket_, 0);
     close(socket_);
+
     socket_ = -1;
     return ESP_OK;
 }
 
-esp_err_t killandclean() {
-    // if (initialized){
-
-    // }
-
-    // xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
+esp_err_t killandclean()
+{
 
     closeSocket();
 
     return ESP_OK;
 }
 
-esp_err_t forcePowerDown() {
+esp_err_t forcePowerDown()
+{
     //if psm is supported, do a soft power down
-    if (dce->PSM) {
-        //we should wait a bit for it to enter...
-        if (dce && dte) {
+    if (dce->PSM)
+    {
+        if (dce && dte)
+        {
+            //initialize the stop sequence
             ESP_LOGI(TAG, "Exit PPP");
             esp_err_t alive = esp_modem_stop_ppp(dte);
-            ESP_LOGI(TAG, "Waiting for stop...");
 
             // we just wait for the psm enter notification...
             // xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
 
             int i = 0;
-            while (!dce->psm_enter_notified && i < 50) {
+            while (!dce->psm_enter_notified && i < 50)
+            {
                 vTaskDelay(pdMS_TO_TICKS(200));
                 ++i;
             }
 
-            if (dce->psm_enter_notified) {
+            if (dce->psm_enter_notified)
+            {
                 return ESP_OK;
             }
         }
-
-        // delay for now but status should be captured by modem.
     }
 
     //no psm or we never get the psm enter notification. Toggle pin to power down..
+    //bit harder stop, but modem gets to detach as needed.
     dce->power_down(dce);
     return ESP_OK;
 }

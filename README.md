@@ -1,131 +1,295 @@
-# PPP over Serial (PPPoS) client example
+# Onomondo getting started kit. 
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+Example forked from [esp-idf repo](https://github.com/espressif/esp-idf/tree/master/examples/protocols/pppos_client). 
 
 ## Overview
 
-A general PPP application consists of two parts: PPP server which is provided by cellular modem module and PPP client which is provided by ESP32 in this example.
+*A general PPP application consists of two parts: PPP server which is provided by cellular modem module and PPP client which is provided by ESP32 in this example.
 Standard operating systems like Windows and Unix integrate a full PPP stack and provide a way to setup PPP connection at the same time. But how can we get access to Internet by PPP protocol in a resource constrained system? Fortunately, the PPP protocol has already been implemented in lwIP, but it doesn't supply a common way to setup a PPP connection.
 This example introduces a library focusing on sending and parsing AT commands, and also provides useful functions to set up PPP connection.
-When PPP connection has been established, the IP packet flow from application side will be transmitted to Internet by cellular module. This example shows how to act as a MQTT client after the PPPoS channel created by using [ESP-MQTT](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/protocols/mqtt.html) APIs.
+When PPP connection has been established, the IP packet flow from application side will be transmitted to Internet by cellular module.*
 
-## How to use example
 
-### Hardware Required
+## What is this?
+The kit is designed to showcase some of the features provided by Onomondo. Head over to [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) to get a guided tour of the platform and to see the data packets in real-time. 
 
-To run this example, you need an ESP32 dev board (e.g. ESP32-WROVER Kit) or ESP32 core board (e.g. ESP32-DevKitC).
-For test purpose, you also need a cellular modem module. Here we take the [SIM800L](https://www.simcom.com/product/SIM800.html) and [BG96](https://www.quectel.com/product/bg96.htm) as an example.
-You can also try other modules as long as they embedded PPP protocol.
+### Onomondo Connectors 
+Specifically, this example is powered by the Onomondo Connectors. It removes complexity (i.e. Cloud SDK) from the device and let the network handle it. Check out the code snippet below - would you have guessed that this is fully encrypted and integrated into the *Azure IoT Hub*? Get more info on Connectors [here](https://help.onomondo.com/what-are-onomondo-connectors). 
 
-**Note:** Since SIM800L only support **2G** which will **not** work in some countries. And also keep in mind that in some other countries it will stop working soon (many remaining 2G networks will be switched off in the next 2-3 years). So you should **check with your local providers for further details** if you try this example with any 2G modules.
+```c
+//init cellular connectivity
+esp_err_t status = initCellular(SIM7xxx, 0);
+...
+...
+// setup of sensor
+...
+...
+// open a socket to a non-existing server
+status = openSocket("1.2.3.4", 4321);
 
-#### Pin Assignment
+// payload formatting
+sprintf(payload, "{\"battery\": %f,\"signal\": %f,\"temperature\": %f}", battery, signal, temp);
 
-**Note:** The following pin assignments are used by default which can be changed in menuconfig.
+// transmit payload
+status = sendData(payload, strlen(payload), 0);
+```
 
-| ESP32  | Cellular Modem |
-| ------ | -------------- |
-| GPIO25 | RX             |
-| GPIO26 | TX             |
-| GND    | GND            |
-| 5V     | VCC            |
+This it what happens on the platform: 
+<!-- ![Onomondo Live Monitor](docs/typicalData.png?raw=true "Onomondo Live Monitor") -->
 
-### Configure the project
+<img src="docs/typicalData.png?raw=true" width="500" />
 
-Open the project configuration menu (`idf.py menuconfig`). Then go into `Example Configuration` menu.
+At this point the data has not yet reached any public networks. Since the SIM has a Connector configured, the payload gets neatly wrapped up and securely handed over to *Azure IoT Hub* (or any other platform).    
 
-- Choose the modem module in `Choose supported modem device(DCE)` option, currently we only support BG96 and SIM800L.
-- Set the access point name in `Set Access Point Name(APN)` option, which should depend on the operator of your SIM card.
-- Set the username and password for PPP authentication in `Set username for authentication` and `Set password for authentication` options.
-- Select `Send MSG before power off` if you want to send a short message in the end of this example, and also you need to set the phone number correctly in `Peer Phone Number(with area code)` option.
-- In `UART Configuration` menu, you need to set the GPIO numbers of UART and task specific parameters such as stack size, priority.
+This is from the *Azure Logs*:
 
-**Note:** During PPP setup, we should specify the way of authentication negotiation. By default it's configured to `PAP`. You can change to others (e.g. `CHAP`) in `Component config-->LWIP-->Enable PPP support` menu.
+<img src="docs/dataFromAzure.png?raw=true" width="500" />
 
-### Build and Flash
+## How to use. 
 
-Run `idf.py -p PORT flash monitor` to build and flash the project..
+The kit is fully programmed when you get it. However, you are encouraged to modify the example we have provided. 
+
+First time use: Flick the power switch and the device should come online. The device will search for networks, register on a network and establish a data connection. Touch the touch-pad on the front to transmit a message with the current temperature, battery voltage and last known signal level. After a while the device will enter a low power state. Give it a shake to wake it up again. 
+
+### Get the demo tour
+On [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) you'll get the full tour. 
+
+
+### Flash a precompiled firmware
+In case the stock firmware gets overwritten, you can easily flash the device with a precompiled binary. Download the *ESP flash download tool* [here](https://www.espressif.com/en/support/download/other-tools?keys=download+tool), download the precompiled firmware (**onomondo_getting_started.bin**) from the repo and flash the device. 
+
+### Build and Flash Modified firmware. 
+
+Run `idf.py --ccache -p PORT build flash monitor` to build and flash the project..
 
 (To exit the serial monitor, type ``Ctrl-]``.)
 
-See the [Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects.
+See the [ESP-IDF Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/get-started/index.html) for full steps to configure and use ESP-IDF to build projects. 
+
+
+## Troubleshooting
+If the device fails to connect (red flashing LED).  
+1. Is the sim activated
+2. Attaching for the first time can be slow in some cases. 
+3. Is the antenna plugged in?
+4. Is there sufficient charge on the battery? If the battery is discharged the device won't turn on until it has been plugged into a charger. 
+
+Check the Network logs on the Onomondo platform. Does the platform report any activity?
+
+Plug the device into you computer (use the port marked as MCU Debug on the back). Have a look at the out below and see if anything stands out. Does the modem reponds to any commands? When does it stop responding? 
+
+
 
 ## Example Output
 
-The example will get module and operator's information after start up, and then go into PPP mode to start mqtt client operations. This example will also send a short message to someone's phone if you have enabled this feature in menuconfig. The PPP connection will get restarted after 60 seconds.
 
-### BG96 Output
-
+### SIM7070G Output
 ```bash
-I (1276) pppos_example: Module: BG96
-I (1276) pppos_example: Operator: "CHINA MOBILE CMCC"
-I (1276) pppos_example: IMEI: 866425030121349
-I (1276) pppos_example: IMSI: 460007454185220
-I (1476) pppos_example: rssi: 27, ber: 99
-I (1676) pppos_example: Battery voltage: 3908 mV
-I (1876) pppos_example: Modem PPP Started
-I (2656) pppos_example: Modem Connect to PPP Server
-I (2656) pppos_example: ~~~~~~~~~~~~~~
-I (2656) pppos_example: IP          : 10.65.71.127
-I (2656) pppos_example: Netmask     : 255.255.255.255
-I (2666) pppos_example: Gateway     : 10.64.64.64
-I (2666) pppos_example: Name Server1: 211.136.112.50
-I (2676) pppos_example: Name Server2: 211.136.150.66
-I (2676) pppos_example: ~~~~~~~~~~~~~~
-I (2686) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (2696) pppos_example: MQTT other event id: 7
-I (3426) MQTT_CLIENT: Sending MQTT CONNECT message, type: 1, id: 0000
-I (3856) pppos_example: MQTT_EVENT_CONNECTED
-I (3856) pppos_example: sent subscribe successful, msg_id=20132
-I (4226) pppos_example: MQTT_EVENT_SUBSCRIBED, msg_id=20132
-I (4226) pppos_example: sent publish successful, msg_id=0
-I (4646) pppos_example: MQTT_EVENT_DATA
-TOPIC=/topic/esp-pppos
-DATA=esp32-pppos
-I (4696) pppos_example: Modem PPP Stopped
-I (9466) pppos_example: Send send message [Welcome to ESP32!] ok
-I (9666) pppos_example: Power down
+I (451) main: Cpu freq: 160 MhZ
+I (451) ACC: Config i2c param
+I (461) ACC: Install i2c driver
+I (461) ACC: Reading register....
+I (481) main: Temperature: 26.500000
+I (481) gpio: GPIO[4]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0
+I (481) gpio: GPIO[5]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0
+I (491) gpio: GPIO[25]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0
+I (511) touch_driver: test init: touch pad [6] val is 686
+I (511) uart: queue free spaces: 30
+I (511) sim800: PWR pin 27
+I (511) gpio: GPIO[27]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0
+I (521) AT CMD: AT
+E (621) esp-modem: esp_modem_dte_send_cmd(352): process command timeout
+E (621) dce_service: esp_modem_dce_power_test(251): send command failed
+I (721) AT CMD: AT
+I (721) AT RESP: AT
+
+E (721) esp-modem: esp_dte_handle_line(136): handle line failed
+E (721) esp-modem: AT
+
+I (721) AT RESP: OK
+
+I (721) sim800: Modem is on!
+I (731) AT CMD: AT
+I (731) AT RESP: AT
+
+E (731) esp-modem: esp_dte_handle_line(136): handle line failed
+E (741) esp-modem: AT
+
+I (741) AT RESP: OK
+
+I (751) AT CMD: ATE0
+I (751) AT RESP: ATE0
+
+E (751) esp-modem: esp_dte_handle_line(136): handle line failed
+E (761) esp-modem: ATE0
+
+I (761) AT RESP: OK
+
+I (761) AT CMD: AT+CGMM
+I (771) AT RESP:
+
+I (771) AT RESP: SIMCOM_SIM7070
+
+I (781) AT RESP:
+
+I (781) AT RESP: OK
+
+I (781) AT CMD: AT+CGSN
+I (791) AT RESP:
+
+I (791) AT RESP: 861340049970997
+
+I (791) AT RESP:
+
+I (791) AT RESP: OK
+
+I (801) AT CMD: AT+COPS?
+I (801) AT RESP:
+
+I (801) AT RESP: +COPS: 1,0,"TDC",7
+
+I (811) AT RESP:
+
+I (811) AT RESP: OK
+
+I (811) AT CMD: AT+CREG?
+I (821) AT RESP:
+
+I (821) AT RESP: +CREG: 0,5
+
+I (821) AT RESP:
+
+I (831) AT RESP: OK
+
+I (831) AT CMD: AT+CBANDCFG="CAT-M",3,8,20
+I (841) AT RESP:
+
+I (841) AT RESP: OK
+
+I (841) AT CMD: AT+CNMP=38
+I (851) AT RESP:
+
+I (851) AT RESP: OK
+
+I (851) esp-modem: No handler for line: OK
+
+E (851) esp-modem: OK
+
+E (1341) esp-modem: esp_modem_dte_send_cmd(352): process command timeout
+I (1341) sim800: Modem INIT OK, 0x3ffbf604
+I (1341) AT CMD: AT+IFC=0,0
+I (1341) AT RESP:
+
+I (1341) AT RESP: OK
+
+I (1351) AT CMD: AT+CREG?
+I (1351) AT RESP:
+
+I (1351) AT RESP: +CREG: 0,5
+
+I (1361) AT RESP:
+
+I (1361) AT RESP: OK
+
+I (1361) cellular: Module: SIMCOM_SIM7070
+I (1371) cellular: Operator: "TDC"
+I (1371) cellular: IMEI: 861340049970997
+I (1381) cellular: IMSI:
+I (1381) AT CMD: AT+CSQ
+I (1381) AT RESP:
+
+I (1391) AT RESP: +CSQ: 31,99
+
+I (1391) AT RESP:
+
+I (1391) AT RESP: OK
+
+I (1401) cellular: rssi: 31, ber: 99
+I (1401) AT CMD: AT+CEDRXS=1,4,"0010"
+I (1411) AT RESP:
+
+I (1411) AT RESP: OK
+
+I (1411) AT CMD: AT+CEDRXRDP
+I (1421) AT RESP:
+
+I (1421) AT RESP: +CEDRXRDP: 4,"0010","0010","0000"
+
+I (1421) eDRX CHECK: Supported
+I (1431) AT RESP:
+
+I (1431) AT RESP: OK
+
+I (1431) AT CMD: AT+CPSMRDP
+I (1441) AT RESP:
+
+I (1441) AT RESP: +CPSMRDP: 0,20,14400,0,0,3600
+
+I (1441) PSM CHECK: +CPSMRDP: 0,20,14400,0,0,3600
+
+I (1451) PSM CHECK: 0,20,14400,0,0,3600
+I (1451) PSM CHECK: Active: 0
+I (1461) AT RESP:
+
+I (1461) AT RESP: OK
+
+I (1461) AT CMD: AT+CPSI?
+I (1471) AT RESP:
+
+I (1481) AT RESP: +CPSI: LTE CAT-M1,Online,238-01,0x07D0,12024586,465,EUTRAN-BAND20,6350,5,5,-16,-83,-53,10
+
+E (1481) esp-modem: esp_dte_handle_line(136): handle line failed
+E (1491) esp-modem: +CPSI: LTE CAT-M1,Online,238-01,0x07D0,12024586,465,EUTRAN-BAND20,6350,5,5,-16,-83,-53,10
+
+I (1501) AT RESP:
+
+I (1501) AT RESP: OK
+
+I (1501) AT CMD: AT+CPSMRDP
+I (1511) AT RESP:
+
+I (1511) AT RESP: +CPSMRDP: 0,20,14400,0,0,3600
+
+I (1521) PSM CHECK: +CPSMRDP: 0,20,14400,0,0,3600
+
+I (1521) PSM CHECK: 0,20,14400,0,0,3600
+I (1531) PSM CHECK: Active: 0
+I (1531) AT RESP:
+
+I (1531) AT RESP: OK
+
+I (1541) AT CMD: AT+CGDCONT=1,"IP","onomondo"
+I (1551) AT RESP:
+
+I (1551) AT RESP: OK
+
+I (1551) dce_service: define pdp context ok
+I (1551) sim800: Working mode is changed! :D
+I (1561) AT CMD: ATD*99#
+I (1561) AT RESP:
+
+I (1561) AT RESP: CONNECT 150000000
+
+I (1671) cellular: Modem PPP Started
+I (1671) cellular: PPP state changed event 259
+I (1671) cellular: PPP state changed event 262
+I (1691) cellular: PPP state changed event 263
+I (1691) cellular: PPP state changed event 265
+I (1711) esp-netif_lwip-ppp: Connected
+I (1711) esp-netif_lwip-ppp: Name Server1: 10.85.59.251
+I (1711) esp-netif_lwip-ppp: Name Server2: 10.85.59.242
+I (1721) cellular: Modem Connect to PPP Server
+I (1721) cellular: ~~~~~~~~~~~~~~
+I (1731) cellular: IP          : 100.68.57.55
+I (1731) cellular: Netmask     : 255.255.255.255
+I (1741) cellular: Gateway     : 10.64.64.64
+I (1741) cellular: Name Server1: 10.85.59.251
+I (1751) cellular: Name Server2: 10.85.59.242
+I (1751) cellular: ~~~~~~~~~~~~~~
+I (1761) cellular: GOT ip event!!!
+I (1761) cellular: PPP state changed event 266
+I (1771) cellular: Socket created, connecting to 1.2.3.4:4321
+I (3161) Transmit: {"battery": 0.284000,"signal": 31.000000,"temperature": 26.625000}
+W (20361) ACC: Wakeup interrupt NOT active...,00000000
 ```
 
-### SIM800L Output
-```bash
-I (1276) pppos_example: Module: SIMCOM_SIM800L
-I (1276) pppos_example: Operator: "CHINA MOBILE"
-I (1276) pppos_example: IMEI: 865992039850864
-I (1276) pppos_example: IMSI: 460007454185220
-I (1476) pppos_example: rssi: 25, ber: 0
-I (1676) pppos_example: Battery voltage: 4674 mV
-I (1876) pppos_example: Modem PPP Started
-I (2806) pppos_example: Modem Connect to PPP Server
-I (2806) pppos_example: ~~~~~~~~~~~~~~
-I (2806) pppos_example: IP          : 10.188.173.2
-I (2806) pppos_example: Netmask     : 255.255.255.255
-I (2816) pppos_example: Gateway     : 192.168.254.254
-I (2816) pppos_example: Name Server1: 211.136.112.50
-I (2826) pppos_example: Name Server2: 211.136.150.66
-I (2826) pppos_example: ~~~~~~~~~~~~~~
-I (2836) system_api: Base MAC address is not set, read default base MAC address from BLK0 of EFUSE
-I (2846) pppos_example: MQTT other event id: 7
-I (8156) MQTT_CLIENT: Sending MQTT CONNECT message, type: 1, id: 0000
-I (8826) pppos_example: MQTT_EVENT_CONNECTED
-I (8826) pppos_example: sent subscribe successful, msg_id=26237
-I (9526) pppos_example: MQTT_EVENT_SUBSCRIBED, msg_id=26237
-I (9526) pppos_example: sent publish successful, msg_id=0
-I (10326) pppos_example: MQTT_EVENT_DATA
-TOPIC=/topic/esp-pppos
-DATA=esp32-pppos
-I (10376) pppos_example: Modem PPP Stopped
-I (14526) pppos_example: Send send message [Welcome to ESP32!] ok
-I (15076) pppos_example: Power down
-```
-
-## Troubleshooting
-1. Why sending AT commands always failed and this example just keeping rebooting? e.g.
-
-```bash
-E (626) sim800: sim800_sync(293): send command failed
-E (626) sim800: sim800_init(628): sync failed
-```
-   * Make sure your modem module is in command mode stably before you run this example.
-
-(For any technical queries, please open an [issue](https://github.com/espressif/esp-idf/issues) on GitHub. We will get back to you as soon as possible.)
