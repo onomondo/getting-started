@@ -2,14 +2,6 @@
 
 Example forked from [esp-idf repo](https://github.com/espressif/esp-idf/tree/master/examples/protocols/pppos_client). 
 
-## Overview
-
-*A general PPP application consists of two parts: PPP server which is provided by cellular modem module and PPP client which is provided by ESP32 in this example.
-Standard operating systems like Windows and Unix integrate a full PPP stack and provide a way to setup PPP connection at the same time. But how can we get access to Internet by PPP protocol in a resource constrained system? Fortunately, the PPP protocol has already been implemented in lwIP, but it doesn't supply a common way to setup a PPP connection.
-This example introduces a library focusing on sending and parsing AT commands, and also provides useful functions to set up PPP connection.
-When PPP connection has been established, the IP packet flow from application side will be transmitted to Internet by cellular module.*
-
-
 ## What is this?
 The kit is designed to showcase some of the features provided by Onomondo. Head over to [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) to get a guided tour of the platform and to see the data packets in real-time. 
 
@@ -37,13 +29,15 @@ status = sendData(payload, strlen(payload), 0);
 This it what happens on the platform: 
 <!-- ![Onomondo Live Monitor](docs/typicalData.png?raw=true "Onomondo Live Monitor") -->
 
-<img src="docs/typicalData.png?raw=true" width="500" />
+<img src="docs/typicalData.png?raw=true" width="800" />
 
 At this point the data has not yet reached any public networks. Since the SIM has a Connector configured, the payload gets neatly wrapped up and securely handed over to *Azure IoT Hub* (or any other platform).    
 
 This is from the *Azure Logs*:
 
-<img src="docs/dataFromAzure.png?raw=true" width="500" />
+<img src="docs/dataFromAzure.png?raw=true" width="800" />
+
+Notice how the network has added a few fields: A timestamp and a sim_id so the device can be identified. 
 
 ## How to use. 
 
