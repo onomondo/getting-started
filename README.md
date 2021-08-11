@@ -3,7 +3,7 @@
 Example forked from [esp-idf repo](https://github.com/espressif/esp-idf/tree/master/examples/protocols/pppos_client). 
 
 ## What is this?
-The kit is designed to showcase some of the features provided by Onomondo. Head over to [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) to get a guided tour of the platform and to see the data packets in real-time. 
+The kit is designed to showcase some of the features provided by Onomondo. Already a customer? Head over to [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) to get a guided tour of the platform and to see the data packets in real-time. 
 
 ### Onomondo Connectors 
 Specifically, this example is powered by the Onomondo Connectors. It removes complexity (i.e. Cloud SDK) from the device and let the network handle it. Check out the code snippet below - would you have guessed that this is fully encrypted and integrated into the *Azure IoT Hub*? Get more info on Connectors [here](https://help.onomondo.com/what-are-onomondo-connectors). 
@@ -31,13 +31,13 @@ This it what happens on the platform:
 
 <img src="docs/typicalData.png?raw=true" width="800" />
 
-At this point the data has not yet reached any public networks. Since the SIM has a Connector configured, the payload gets neatly wrapped up and securely handed over to *Azure IoT Hub* (or any other platform).    
+At this point the data has not yet reached any public networks. Since the SIM has a Connector configured, the payload gets neatly wrapped up and securely handed over to *Azure IoT Hub* (but not limited to *Azure*: Want a webhook event: ✔, any major cloud provider ✔, custom TLS endpoint ✔).    
 
 This is from the *Azure Logs*:
 
 <img src="docs/dataFromAzure.png?raw=true" width="800" />
 
-Notice how the network has added a few fields: A timestamp and a sim_id so the device can be identified. 
+Notice how the network has added a few fields: A timestamp and a sim_id so the device can be identified. In addition to the extra fields everything has been fully encrypted. 
 
 ## How to use. 
 
@@ -51,6 +51,8 @@ On [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) 
 
 ### Flash a precompiled firmware
 In case the stock firmware gets overwritten, you can easily flash the device with a precompiled binary. Download the *ESP flash download tool* [here](https://www.espressif.com/en/support/download/other-tools?keys=download+tool), download the precompiled firmware (**onomondo_getting_started.bin**) from the repo and flash the device. 
+
+These procompiled binaries will in the future include firmware to assist in debugging connectivity with Onomondo. 
 
 ### Build and Flash Modified firmware. 
 
