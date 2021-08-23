@@ -1,0 +1,555 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 2 4
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Text GLabel 5350 2000 2    50   Input ~ 0
+VBAT
+Text GLabel 6200 1750 1    50   Input ~ 0
+VBAT
+$Comp
+L sim7070-rescue:CP-Device C3
+U 1 1 5F8AE591
+P 6100 2100
+F 0 "C3" H 6218 2146 50  0000 L CNN
+F 1 "100n" H 6218 2055 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 6138 1950 50  0001 C CNN
+F 3 "~" H 6100 2100 50  0001 C CNN
+F 4 "C1525" H 6100 2100 50  0001 C CNN "LCSC"
+	1    6100 2100
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:CP-Device C4
+U 1 1 5F8AE597
+P 6450 2100
+F 0 "C4" H 6568 2146 50  0000 L CNN
+F 1 "1u" H 6568 2055 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric" H 6488 1950 50  0001 C CNN
+F 3 "~" H 6450 2100 50  0001 C CNN
+F 4 "C28323" H 6450 2100 50  0001 C CNN "LCSC"
+	1    6450 2100
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:CP-Device C9
+U 1 1 5F8AE59D
+P 6750 2100
+F 0 "C9" H 6868 2146 50  0000 L CNN
+F 1 "100u" H 6868 2055 50  0000 L CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 6788 1950 50  0001 C CNN
+F 3 "~" H 6750 2100 50  0001 C CNN
+F 4 "C15008" H 6750 2100 50  0001 C CNN "LCSC"
+	1    6750 2100
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:CP-Device C10
+U 1 1 5F8AE5A3
+P 7150 2100
+F 0 "C10" H 7268 2146 50  0000 L CNN
+F 1 "100u" H 7268 2055 50  0000 L CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 7188 1950 50  0001 C CNN
+F 3 "~" H 7150 2100 50  0001 C CNN
+	1    7150 2100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6100 1900 6200 1900
+Wire Wire Line
+	6200 1750 6200 1900
+Connection ~ 6200 1900
+Wire Wire Line
+	6200 1900 6450 1900
+Wire Wire Line
+	6100 2300 6450 2300
+Wire Wire Line
+	6100 2250 6100 2300
+Wire Wire Line
+	6450 2250 6450 2300
+Connection ~ 6450 2300
+Wire Wire Line
+	6450 2300 6650 2300
+Wire Wire Line
+	6750 2250 6750 2300
+Connection ~ 6750 2300
+Wire Wire Line
+	6750 2300 7150 2300
+Wire Wire Line
+	7150 2250 7150 2300
+$Comp
+L sim7070-rescue:GND-power #PWR0105
+U 1 1 5F8AE5B6
+P 6650 2450
+F 0 "#PWR0105" H 6650 2200 50  0001 C CNN
+F 1 "GND" H 6655 2277 50  0000 C CNN
+F 2 "" H 6650 2450 50  0001 C CNN
+F 3 "" H 6650 2450 50  0001 C CNN
+	1    6650 2450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6650 2300 6650 2450
+Connection ~ 6650 2300
+Wire Wire Line
+	6650 2300 6750 2300
+Wire Wire Line
+	6100 1950 6100 1900
+Wire Wire Line
+	6450 1950 6450 1900
+Connection ~ 6450 1900
+Wire Wire Line
+	6450 1900 6750 1900
+Wire Wire Line
+	6750 1950 6750 1900
+Connection ~ 6750 1900
+Wire Wire Line
+	6750 1900 7150 1900
+Wire Wire Line
+	7150 1900 7150 1950
+Wire Wire Line
+	5350 4350 5350 4300
+Text GLabel 5350 3500 2    50   Input ~ 0
+MODEM_STATUS
+Text GLabel 5350 2100 2    50   Input ~ 0
+VDD_EXT
+Text GLabel 5350 2200 2    50   Input ~ 0
+SIM_VDD
+Text GLabel 5350 2400 2    50   Input ~ 0
+SIM_CLK
+Text GLabel 5350 2500 2    50   Input ~ 0
+SIM_RST
+Text GLabel 5350 2700 2    50   Input ~ 0
+SIM_DATA
+NoConn ~ 5350 2800
+NoConn ~ 5350 2900
+NoConn ~ 5350 3000
+NoConn ~ 5350 3100
+NoConn ~ 5350 3200
+NoConn ~ 5350 3300
+Text GLabel 5350 3400 2    50   Input ~ 0
+NET_STATUS
+NoConn ~ 5350 3600
+NoConn ~ 5350 3700
+NoConn ~ 5350 3800
+NoConn ~ 5350 3900
+NoConn ~ 5350 4000
+Text GLabel 3350 2600 0    50   Input ~ 0
+VBUS_USB
+Text GLabel 3350 2700 0    50   Input ~ 0
+USB_D+
+$Comp
+L sim7070-rescue:GND-power #PWR0111
+U 1 1 5F8AE5DC
+P 1300 5900
+F 0 "#PWR0111" H 1300 5650 50  0001 C CNN
+F 1 "GND" H 1305 5727 50  0000 C CNN
+F 2 "" H 1300 5900 50  0001 C CNN
+F 3 "" H 1300 5900 50  0001 C CNN
+	1    1300 5900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1300 5850 1300 5900
+Text GLabel 2100 5550 2    50   Input ~ 0
+SIM_CLK
+Text GLabel 2100 5650 2    50   Input ~ 0
+SIM_RST
+Text GLabel 2100 5850 2    50   Input ~ 0
+SIM_DATA
+NoConn ~ 10400 2250
+Text GLabel 3350 3400 0    50   Input ~ 0
+MODEM_TXD
+Text GLabel 3350 3500 0    50   Input ~ 0
+MODEM_RXD
+Text GLabel 3350 3700 0    50   Input ~ 0
+RF_ANT
+Text GLabel 3350 2400 0    50   Input ~ 0
+MODEM_PWRKEY
+NoConn ~ 5350 2600
+Text GLabel 3350 2800 0    50   Input ~ 0
+USB_D-
+Text Notes 3300 2300 0    50   ~ 0
+Temperature sensor 
+$Comp
+L sim7070-rescue:SIM7000E-SIM7000E U2
+U 1 1 5F8AE5FD
+P 4350 3200
+F 0 "U2" H 4350 4667 50  0000 C CNN
+F 1 "SIM7000E" H 4350 4576 50  0000 C CNN
+F 2 "footprints:SIMCON_SIM7000E" H 4350 3200 50  0001 L BNN
+F 3 "MANUFACTURER RECOMMENDATIONS" H 4350 3200 50  0001 L BNN
+F 4 "SIMCOM" H 4350 3200 50  0001 L BNN "Field4"
+F 5 "1.01" H 4350 3200 50  0001 L BNN "Field5"
+	1    4350 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5F8AE609
+P 3650 5900
+AR Path="/5F76B017/5F8AE609" Ref="D?"  Part="1" 
+AR Path="/5F8AE609" Ref="D?"  Part="1" 
+AR Path="/5F893C1E/5F8AE609" Ref="D2"  Part="1" 
+F 0 "D2" V 3689 5782 50  0000 R CNN
+F 1 "GREEN" V 3598 5782 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 3650 5900 50  0001 C CNN
+F 3 "~" H 3650 5900 50  0001 C CNN
+	1    3650 5900
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F8AE60F
+P 3650 6200
+AR Path="/5F76B017/5F8AE60F" Ref="R?"  Part="1" 
+AR Path="/5F8AE60F" Ref="R?"  Part="1" 
+AR Path="/5F893C1E/5F8AE60F" Ref="R3"  Part="1" 
+F 0 "R3" H 3720 6246 50  0000 L CNN
+F 1 "500" H 3720 6155 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 3580 6200 50  0001 C CNN
+F 3 "~" H 3650 6200 50  0001 C CNN
+F 4 "C23179" H 3650 6200 50  0001 C CNN "LCSC"
+	1    3650 6200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 6400 3650 6350
+Wire Wire Line
+	3650 6800 3650 7000
+Connection ~ 3650 7000
+Wire Wire Line
+	3650 7000 3650 7050
+Wire Wire Line
+	3350 7000 3650 7000
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F8AE61A
+P 3350 6850
+AR Path="/5F76B017/5F8AE61A" Ref="R?"  Part="1" 
+AR Path="/5F8AE61A" Ref="R?"  Part="1" 
+AR Path="/5F893C1E/5F8AE61A" Ref="R2"  Part="1" 
+F 0 "R2" H 3420 6896 50  0000 L CNN
+F 1 "10k" H 3420 6805 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 3280 6850 50  0001 C CNN
+F 3 "~" H 3350 6850 50  0001 C CNN
+F 4 "C25531" H 3350 6850 50  0001 C CNN "LCSC"
+	1    3350 6850
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F8AE620
+P 3650 7050
+AR Path="/5F76B017/5F8AE620" Ref="#PWR?"  Part="1" 
+AR Path="/5F8AE620" Ref="#PWR?"  Part="1" 
+AR Path="/5F893C1E/5F8AE620" Ref="#PWR0114"  Part="1" 
+F 0 "#PWR0114" H 3650 6800 50  0001 C CNN
+F 1 "GND" H 3655 6877 50  0000 C CNN
+F 2 "" H 3650 7050 50  0001 C CNN
+F 3 "" H 3650 7050 50  0001 C CNN
+	1    3650 7050
+	1    0    0    -1  
+$EndComp
+Text GLabel 3350 6550 1    50   Input ~ 0
+NET_STATUS
+NoConn ~ 3350 3900
+NoConn ~ 3350 3300
+NoConn ~ 3350 3200
+NoConn ~ 3350 3100
+NoConn ~ 3350 3000
+NoConn ~ 3350 2900
+$Comp
+L sim7070-rescue:MSQA6V1W5T2G-esdeec U3
+U 1 1 5F8AE677
+P 1200 5850
+F 0 "U3" H 1700 6115 50  0000 C CNN
+F 1 "MSQA6V1W5T2G" H 1700 6024 50  0000 C CNN
+F 2 "footprints:On_Semiconductor-MSQA6V1W5T2G-Manufacturer_Recommended" H 1200 6250 50  0001 L CNN
+F 3 "http://www.onsemi.cn/pub_link/Collateral/MSQA6V1W5T2-D.PDF" H 1200 6350 50  0001 L CNN
+F 4 "90" H 1200 6450 50  0001 L CNN "C Max pF"
+F 5 "Manufacturer URL" H 1200 6550 50  0001 L CNN "Component Link 1 Description"
+F 6 "http://www.onsemi.com/" H 1200 6650 50  0001 L CNN "Component Link 1 URL"
+F 7 "Package Specification" H 1200 6750 50  0001 L CNN "Component Link 3 Description"
+F 8 "http://www.onsemi.cn/pub_link/Collateral/419A-02.PDF" H 1200 6850 50  0001 L CNN "Component Link 3 URL"
+F 9 "Rev. 7" H 1200 6950 50  0001 L CNN "Datasheet Version"
+F 10 "Unidirectional" H 1200 7050 50  0001 L CNN "Direction"
+F 11 "1" H 1200 7150 50  0001 L CNN "IR Max uA"
+F 12 "Surface Mount" H 1200 7250 50  0001 L CNN "Mounting Technology"
+F 13 "4" H 1200 7350 50  0001 L CNN "Number of Lines"
+F 14 "150" H 1200 7450 50  0001 L CNN "PPK Max W"
+F 15 "5-Pin Small Outline Transistor, Body 2 x 1.25 mm, Pitch 0.65 mm" H 1200 7550 50  0001 L CNN "Package Description"
+F 16 "Rev. L, 01/2013" H 1200 7650 50  0001 L CNN "Package Version"
+F 17 "Tape and Reel" H 1200 7750 50  0001 L CNN "Packing"
+F 18 "6.1" H 1200 7850 50  0001 L CNN "VBR Min V"
+F 19 "IC" H 1200 7950 50  0001 L CNN "category"
+F 20 "284500" H 1200 8050 50  0001 L CNN "ciiva ids"
+F 21 "ff1b99dd5dcc2bd6" H 1200 8150 50  0001 L CNN "library id"
+F 22 "On Semiconductor" H 1200 8250 50  0001 L CNN "manufacturer"
+F 23 "SC70-5-419A-02" H 1200 8350 50  0001 L CNN "package"
+F 24 "1407149967" H 1200 8450 50  0001 L CNN "release date"
+F 25 "No" H 1200 8550 50  0001 L CNN "rohs"
+F 26 "19C46130-3A59-4987-919D-5EAA9B591173" H 1200 8650 50  0001 L CNN "vault revision"
+F 27 "yes" H 1200 8750 50  0001 L CNN "imported"
+F 28 "C232563" H 1200 5850 50  0001 C CNN "LCSC"
+	1    1200 5850
+	1    0    0    1   
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0116
+U 1 1 5F8AE67D
+P 5350 4350
+F 0 "#PWR0116" H 5350 4100 50  0001 C CNN
+F 1 "GND" H 5355 4177 50  0000 C CNN
+F 2 "" H 5350 4350 50  0001 C CNN
+F 3 "" H 5350 4350 50  0001 C CNN
+	1    5350 4350
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:U_FL-R-SMT-1_10_-dk_Coaxial-Connectors-RF J1
+U 1 1 5F8AE68C
+P 8150 2050
+F 0 "J1" H 8228 2275 50  0000 C CNN
+F 1 "U_FL-R-SMT-1_10_" H 8228 2184 50  0000 C CNN
+F 2 "digikey-footprints:Coax_Conn_U.FL" H 8350 2250 60  0001 L CNN
+F 3 "https://www.hirose.com/product/en/download_file/key_name/U.FL-R-SMT-1%2810%29/category/Drawing%20(2D)/doc_file_id/37627/?file_category_id=6&item_id=03310472210&is_series=U.FL-R-SMT-1(10" H 8350 2350 60  0001 L CNN
+F 4 "H11891CT-ND" H 8350 2450 60  0001 L CNN "Digi-Key_PN"
+F 5 "U.FL-R-SMT-1(10)" H 8350 2550 60  0001 L CNN "MPN"
+F 6 "Connectors, Interconnects" H 8350 2650 60  0001 L CNN "Category"
+F 7 "Coaxial Connectors (RF)" H 8350 2750 60  0001 L CNN "Family"
+F 8 "https://www.hirose.com/product/en/download_file/key_name/U.FL-R-SMT-1%2810%29/category/Drawing%20(2D)/doc_file_id/37627/?file_category_id=6&item_id=03310472210&is_series=U.FL-R-SMT-1(10" H 8350 2850 60  0001 L CNN "DK_Datasheet_Link"
+F 9 "/product-detail/en/hirose-electric-co-ltd/U.FL-R-SMT-1(10)/H11891CT-ND/2504612" H 8350 2950 60  0001 L CNN "DK_Detail_Page"
+F 10 "CONN U.FL RCPT STR 50 OHM SMD" H 8350 3050 60  0001 L CNN "Description"
+F 11 "Hirose Electric Co Ltd" H 8350 3150 60  0001 L CNN "Manufacturer"
+F 12 "Active" H 8350 3250 60  0001 L CNN "Status"
+F 13 "C88374" H 8150 2050 50  0001 C CNN "LCSC"
+	1    8150 2050
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0117
+U 1 1 5F8AE692
+P 8150 2250
+F 0 "#PWR0117" H 8150 2000 50  0001 C CNN
+F 1 "GND" H 8155 2077 50  0000 C CNN
+F 2 "" H 8150 2250 50  0001 C CNN
+F 3 "" H 8150 2250 50  0001 C CNN
+	1    8150 2250
+	1    0    0    -1  
+$EndComp
+Text GLabel 8350 2050 2    50   Input ~ 0
+RF_ANT
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5FA7F2A4
+P 1800 2450
+AR Path="/5F76B017/5FA7F2A4" Ref="#PWR?"  Part="1" 
+AR Path="/5FA7F2A4" Ref="#PWR?"  Part="1" 
+AR Path="/5F893C1E/5FA7F2A4" Ref="#PWR0150"  Part="1" 
+F 0 "#PWR0150" H 1800 2200 50  0001 C CNN
+F 1 "GND" H 1805 2277 50  0000 C CNN
+F 2 "" H 1800 2450 50  0001 C CNN
+F 3 "" H 1800 2450 50  0001 C CNN
+	1    1800 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C21
+U 1 1 5FA7FC51
+P 2200 2200
+F 0 "C21" H 2292 2246 50  0000 L CNN
+F 1 "100n" H 2292 2155 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 2200 2200 50  0001 C CNN
+F 3 "~" H 2200 2200 50  0001 C CNN
+F 4 "C1525" H 2200 2200 50  0001 C CNN "LCSC"
+	1    2200 2200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2200 2000 2200 2100
+Wire Wire Line
+	1800 2400 1800 2450
+Wire Wire Line
+	1800 2400 2200 2400
+Wire Wire Line
+	2200 2400 2200 2300
+Text GLabel 2200 2000 2    50   Input ~ 0
+MODEM_PWRKEY
+Text GLabel 1450 2200 0    50   Input ~ 0
+MCU_MODEM_PWRKEY
+Wire Wire Line
+	1500 2200 1450 2200
+NoConn ~ 3350 2500
+Text GLabel 3350 3800 0    50   Input ~ 0
+BOOT_CFG
+Text GLabel 2200 3800 2    50   Input ~ 0
+BOOT_CFG
+Text GLabel 1450 3800 0    50   Input ~ 0
+VDD_EXT
+$Comp
+L sim7070-rescue:R_Small-Device R1
+U 1 1 5FABC22D
+P 1600 3800
+F 0 "R1" V 1404 3800 50  0000 C CNN
+F 1 "10k" V 1495 3800 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 1600 3800 50  0001 C CNN
+F 3 "~" H 1600 3800 50  0001 C CNN
+	1    1600 3800
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1500 3800 1450 3800
+$Comp
+L sim7070-rescue:TestPoint_2Pole-Connector TP1
+U 1 1 5FABD625
+P 1950 3800
+F 0 "TP1" H 1950 3995 50  0000 C CNN
+F 1 "TestPoint_2Pole" H 1950 3904 50  0000 C CNN
+F 2 "Jumper:SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm" H 1950 3800 50  0001 C CNN
+F 3 "~" H 1950 3800 50  0001 C CNN
+	1    1950 3800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2150 3800 2200 3800
+Wire Wire Line
+	1750 3800 1700 3800
+$Comp
+L sim7070-rescue:C_Small-Device C5
+U 1 1 5FADA20B
+P 10550 2250
+F 0 "C5" H 10642 2296 50  0000 L CNN
+F 1 "100n" H 10642 2205 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 10550 2250 50  0001 C CNN
+F 3 "~" H 10550 2250 50  0001 C CNN
+F 4 "C1525" H 10550 2250 50  0001 C CNN "LCSC"
+	1    10550 2250
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:SIM8051-6-0-14-01-X-REVD-SIM8051-6-0-14-01-X-REVD J2
+U 1 1 5F87C6B6
+P 9900 2250
+F 0 "J2" H 10000 2617 50  0000 C CNN
+F 1 "SIM8051-6-0-14-01-X-REVD" H 10000 2526 50  0000 C CNN
+F 2 "GettingStarted:SNO-1305-B_NANO_SIM" H 9900 2250 50  0001 L BNN
+F 3 "GCT" H 9900 2250 50  0001 L BNN
+F 4 "C111371" H 9900 2250 50  0001 C CNN "LCSC"
+	1    9900 2250
+	1    0    0    -1  
+$EndComp
+Text GLabel 9600 2150 0    50   Input ~ 0
+SIM_RST
+Text GLabel 9600 2350 0    50   Input ~ 0
+SIM_DATA
+Text GLabel 9600 2250 0    50   Input ~ 0
+SIM_CLK
+Text GLabel 10600 2150 2    50   Input ~ 0
+SIM_VDD
+Wire Wire Line
+	10550 2150 10600 2150
+Wire Wire Line
+	10550 2150 10400 2150
+Connection ~ 10550 2150
+Wire Wire Line
+	10400 2350 10550 2350
+$Comp
+L sim7070-rescue:GND-power #PWR0108
+U 1 1 5F881034
+P 10550 2350
+F 0 "#PWR0108" H 10550 2100 50  0001 C CNN
+F 1 "GND" H 10555 2177 50  0000 C CNN
+F 2 "" H 10550 2350 50  0001 C CNN
+F 3 "" H 10550 2350 50  0001 C CNN
+	1    10550 2350
+	1    0    0    -1  
+$EndComp
+Connection ~ 10550 2350
+Connection ~ 1800 2400
+Wire Wire Line
+	1800 2000 2200 2000
+$Comp
+L sim7070-rescue:R_Small-Device R26
+U 1 1 5FA84327
+P 1500 2300
+F 0 "R26" H 1559 2346 50  0000 L CNN
+F 1 "10k" H 1559 2255 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 1500 2300 50  0001 C CNN
+F 3 "~" H 1500 2300 50  0001 C CNN
+F 4 "C25531" H 1500 2300 50  0001 C CNN "LCSC"
+	1    1500 2300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1800 2400 1500 2400
+$Comp
+L sim7070-rescue:NDS355N-NDS355N Q7
+U 1 1 607C216A
+P 3650 6600
+F 0 "Q7" H 3748 6646 50  0000 L CNN
+F 1 "NDS355N" H 3748 6555 50  0000 L CNN
+F 2 "footprints:SSOT-3" H 3650 6600 50  0001 L BNN
+F 3 "" H 3650 6600 50  0001 L BNN
+F 4 "C113202" H 3650 6600 50  0001 C CNN "LCSC"
+	1    3650 6600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3350 6550 3350 6700
+Wire Wire Line
+	3450 6700 3350 6700
+Connection ~ 3350 6700
+$Comp
+L sim7070-rescue:NDS355N-NDS355N Q6
+U 1 1 607C415A
+P 1800 2200
+F 0 "Q6" H 1898 2246 50  0000 L CNN
+F 1 "NDS355N" H 1898 2155 50  0000 L CNN
+F 2 "footprints:SSOT-3" H 1800 2200 50  0001 L BNN
+F 3 "" H 1800 2200 50  0001 L BNN
+F 4 "C113202" H 1800 2200 50  0001 C CNN "LCSC"
+	1    1800 2200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1500 2200 1600 2200
+Wire Wire Line
+	1600 2200 1600 2300
+Connection ~ 1500 2200
+$Comp
+L sim7070-rescue:+3V3-power #PWR0147
+U 1 1 60B4F6CC
+P 3650 5600
+F 0 "#PWR0147" H 3650 5450 50  0001 C CNN
+F 1 "+3V3" H 3665 5773 50  0000 C CNN
+F 2 "" H 3650 5600 50  0001 C CNN
+F 3 "" H 3650 5600 50  0001 C CNN
+	1    3650 5600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3650 5600 3650 5750
+Text Notes 3550 1700 0    118  ~ 0
+SIM7070G
+Text Notes 7850 1750 0    118  ~ 0
+U.FL antenna
+Text Notes 9700 1800 0    118  ~ 0
+SIM
+Text Notes 1000 1700 0    118  ~ 0
+RESET SIGNAL FROM MCU\n
+Text Notes 1250 5250 0    118  ~ 0
+ESD
+Text Notes 3500 5250 0    118  ~ 0
+STATUS LED
+$EndSCHEMATC

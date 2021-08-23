@@ -1,0 +1,1272 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 4
+Title ""
+Date "2020-10-01"
+Rev "v2"
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Wire Wire Line
+	2800 1900 2800 1950
+Connection ~ 2800 1950
+Text GLabel 3200 1300 2    50   Input ~ 0
+VBAT_CONN
+Text Notes 2400 1200 0    50   ~ 0
+Reverse polarity protection..\n
+Text Notes 1600 1400 0    50   ~ 0
+Switches to disable battery \n
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F9FC57D
+P 7850 3950
+AR Path="/5F76B017/5F9FC57D" Ref="R?"  Part="1" 
+AR Path="/5F9FC57D" Ref="R10"  Part="1" 
+F 0 "R10" H 7920 3996 50  0000 L CNN
+F 1 "500" H 7920 3905 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 7780 3950 50  0001 C CNN
+F 3 "~" H 7850 3950 50  0001 C CNN
+F 4 "C23179" H 7850 3950 50  0001 C CNN "LCSC"
+	1    7850 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7850 4150 7850 4100
+Wire Wire Line
+	7850 4550 7850 4750
+Connection ~ 7850 4750
+Wire Wire Line
+	7850 4750 7850 4800
+Wire Wire Line
+	7550 4750 7850 4750
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F9FC588
+P 7550 4600
+AR Path="/5F76B017/5F9FC588" Ref="R?"  Part="1" 
+AR Path="/5F9FC588" Ref="R9"  Part="1" 
+F 0 "R9" H 7620 4646 50  0000 L CNN
+F 1 "10k" H 7620 4555 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 7480 4600 50  0001 C CNN
+F 3 "~" H 7550 4600 50  0001 C CNN
+F 4 "C25531" H 7550 4600 50  0001 C CNN "LCSC"
+	1    7550 4600
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F9FC58E
+P 7850 4800
+AR Path="/5F76B017/5F9FC58E" Ref="#PWR?"  Part="1" 
+AR Path="/5F9FC58E" Ref="#PWR0139"  Part="1" 
+F 0 "#PWR0139" H 7850 4550 50  0001 C CNN
+F 1 "GND" H 7855 4627 50  0000 C CNN
+F 2 "" H 7850 4800 50  0001 C CNN
+F 3 "" H 7850 4800 50  0001 C CNN
+	1    7850 4800
+	1    0    0    -1  
+$EndComp
+Text GLabel 7550 4300 1    50   Input ~ 0
+LED_0
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5FA107CA
+P 8500 3950
+AR Path="/5F76B017/5FA107CA" Ref="R?"  Part="1" 
+AR Path="/5FA107CA" Ref="R13"  Part="1" 
+F 0 "R13" H 8570 3996 50  0000 L CNN
+F 1 "500" H 8570 3905 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 8430 3950 50  0001 C CNN
+F 3 "~" H 8500 3950 50  0001 C CNN
+F 4 "C23179" H 8500 3950 50  0001 C CNN "LCSC"
+	1    8500 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8500 4150 8500 4100
+Wire Wire Line
+	8500 4550 8500 4750
+Connection ~ 8500 4750
+Wire Wire Line
+	8500 4750 8500 4800
+Wire Wire Line
+	8200 4750 8500 4750
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5FA107D5
+P 8200 4600
+AR Path="/5F76B017/5FA107D5" Ref="R?"  Part="1" 
+AR Path="/5FA107D5" Ref="R11"  Part="1" 
+F 0 "R11" H 8270 4646 50  0000 L CNN
+F 1 "10k" H 8270 4555 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 8130 4600 50  0001 C CNN
+F 3 "~" H 8200 4600 50  0001 C CNN
+F 4 "C25531" H 8200 4600 50  0001 C CNN "LCSC"
+	1    8200 4600
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5FA107DB
+P 8500 4800
+AR Path="/5F76B017/5FA107DB" Ref="#PWR?"  Part="1" 
+AR Path="/5FA107DB" Ref="#PWR0140"  Part="1" 
+F 0 "#PWR0140" H 8500 4550 50  0001 C CNN
+F 1 "GND" H 8505 4627 50  0000 C CNN
+F 2 "" H 8500 4800 50  0001 C CNN
+F 3 "" H 8500 4800 50  0001 C CNN
+	1    8500 4800
+	1    0    0    -1  
+$EndComp
+Text GLabel 8200 4300 1    50   Input ~ 0
+LED_1
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5FA2E0A3
+P 7850 3650
+AR Path="/5F76B017/5FA2E0A3" Ref="D?"  Part="1" 
+AR Path="/5FA2E0A3" Ref="D6"  Part="1" 
+F 0 "D6" V 7889 3532 50  0000 R CNN
+F 1 "RED" V 7798 3532 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 7850 3650 50  0001 C CNN
+F 3 "~" H 7850 3650 50  0001 C CNN
+F 4 "C2286" V 7850 3650 50  0001 C CNN "LCSC"
+	1    7850 3650
+	0    -1   -1   0   
+$EndComp
+$Sheet
+S 1100 5850 1300 300 
+U 5F893C1E
+F0 "cellular" 50
+F1 "file5F893C1D.sch" 50
+$EndSheet
+$Sheet
+S 7850 1300 900  550 
+U 5F8C2C8E
+F0 "connectors" 50
+F1 "file5F8C2C8D.sch" 50
+F2 "VBUS_USB" I R 8750 1350 50 
+F3 "USB_CONN_D+" I R 8750 1450 50 
+F4 "USB_CONN_D-" I R 8750 1550 50 
+F5 "USB_CONN_MCU_D+" I R 8750 1650 50 
+F6 "USB_CONN_MCU_D-" I R 8750 1750 50 
+$EndSheet
+Wire Wire Line
+	9050 5900 9050 5850
+Wire Wire Line
+	9050 6300 9050 6500
+Connection ~ 9050 6500
+Wire Wire Line
+	9050 6500 9050 6550
+Wire Wire Line
+	8750 6500 9050 6500
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F869F44
+P 8750 6350
+AR Path="/5F76B017/5F869F44" Ref="R?"  Part="1" 
+AR Path="/5F869F44" Ref="R22"  Part="1" 
+F 0 "R22" H 8820 6396 50  0000 L CNN
+F 1 "10k" H 8820 6305 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 8680 6350 50  0001 C CNN
+F 3 "~" H 8750 6350 50  0001 C CNN
+F 4 "C25531" H 8750 6350 50  0001 C CNN "LCSC"
+	1    8750 6350
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F869F4A
+P 9050 6550
+AR Path="/5F76B017/5F869F4A" Ref="#PWR?"  Part="1" 
+AR Path="/5F869F4A" Ref="#PWR0149"  Part="1" 
+F 0 "#PWR0149" H 9050 6300 50  0001 C CNN
+F 1 "GND" H 9055 6377 50  0000 C CNN
+F 2 "" H 9050 6550 50  0001 C CNN
+F 3 "" H 9050 6550 50  0001 C CNN
+	1    9050 6550
+	1    0    0    -1  
+$EndComp
+Text GLabel 8750 6050 1    50   Input ~ 0
+LED_LOGO
+Text Notes 1800 1450 2    50   ~ 0
+MOLEX battery connector\n\n\n
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 5F869F39
+P 9050 5700
+AR Path="/5F76B017/5F869F39" Ref="R?"  Part="1" 
+AR Path="/5F869F39" Ref="R25"  Part="1" 
+F 0 "R25" H 9120 5746 50  0000 L CNN
+F 1 "500" H 9120 5655 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 8980 5700 50  0001 C CNN
+F 3 "~" H 9050 5700 50  0001 C CNN
+F 4 "C23179" H 9050 5700 50  0001 C CNN "LCSC"
+	1    9050 5700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	9200 5550 9050 5550
+Connection ~ 9050 5550
+Wire Wire Line
+	9050 5550 8900 5550
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5F869F33
+P 9050 5400
+AR Path="/5F76B017/5F869F33" Ref="D?"  Part="1" 
+AR Path="/5F869F33" Ref="D9"  Part="1" 
+F 0 "D9" V 9089 5282 50  0000 R CNN
+F 1 "WHITE" V 8998 5282 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 9050 5400 50  0001 C CNN
+F 3 "~" H 9050 5400 50  0001 C CNN
+F 4 "C2290" V 9050 5400 50  0001 C CNN "LCSC"
+	1    9050 5400
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	8900 5250 9050 5250
+Connection ~ 9050 5250
+Wire Wire Line
+	9050 5250 9200 5250
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5F86D3EE
+P 8900 5400
+AR Path="/5F76B017/5F86D3EE" Ref="D?"  Part="1" 
+AR Path="/5F86D3EE" Ref="D8"  Part="1" 
+F 0 "D8" V 8939 5282 50  0000 R CNN
+F 1 "WHITE" V 8848 5282 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 8900 5400 50  0001 C CNN
+F 3 "~" H 8900 5400 50  0001 C CNN
+F 4 "C2290" V 8900 5400 50  0001 C CNN "LCSC"
+	1    8900 5400
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5F86D79F
+P 9200 5400
+AR Path="/5F76B017/5F86D79F" Ref="D?"  Part="1" 
+AR Path="/5F86D79F" Ref="D11"  Part="1" 
+F 0 "D11" V 9239 5282 50  0000 R CNN
+F 1 "WHITE" V 9148 5282 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 9200 5400 50  0001 C CNN
+F 3 "~" H 9200 5400 50  0001 C CNN
+F 4 "C2290" V 9200 5400 50  0001 C CNN "LCSC"
+	1    9200 5400
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:TMP75AIDR-gettingStarted U4
+U 1 1 5F8DBF92
+P 1400 7050
+F 0 "U4" H 1375 7315 50  0000 C CNN
+F 1 "TMP75AIDR" H 1375 7224 50  0000 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 1500 7050 50  0001 C CNN
+F 3 "" H 1500 7050 50  0001 C CNN
+F 4 "C30389" H 1400 7050 50  0001 C CNN "LCSC"
+	1    1400 7050
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F8DC541
+P 2000 7600
+AR Path="/5F76B017/5F8DC541" Ref="#PWR?"  Part="1" 
+AR Path="/5F8DC541" Ref="#PWR0109"  Part="1" 
+F 0 "#PWR0109" H 2000 7350 50  0001 C CNN
+F 1 "GND" H 2005 7427 50  0000 C CNN
+F 2 "" H 2000 7600 50  0001 C CNN
+F 3 "" H 2000 7600 50  0001 C CNN
+	1    2000 7600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2000 7600 1800 7600
+Wire Wire Line
+	1800 7600 1800 7500
+Connection ~ 1800 7350
+Wire Wire Line
+	1800 7350 1800 7200
+Connection ~ 1800 7500
+Wire Wire Line
+	1800 7500 1800 7350
+Wire Wire Line
+	1900 7050 1850 7050
+Text GLabel 950  7050 0    50   Input ~ 0
+SDA
+Text GLabel 950  7200 0    50   Input ~ 0
+SCL
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F8E4890
+P 950 7500
+AR Path="/5F76B017/5F8E4890" Ref="#PWR?"  Part="1" 
+AR Path="/5F8E4890" Ref="#PWR0113"  Part="1" 
+F 0 "#PWR0113" H 950 7250 50  0001 C CNN
+F 1 "GND" H 955 7327 50  0000 C CNN
+F 2 "" H 950 7500 50  0001 C CNN
+F 3 "" H 950 7500 50  0001 C CNN
+	1    950  7500
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C6
+U 1 1 5F8EF5F3
+P 2150 7200
+F 0 "C6" H 2242 7246 50  0000 L CNN
+F 1 "100n" H 2242 7155 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 2150 7200 50  0001 C CNN
+F 3 "~" H 2150 7200 50  0001 C CNN
+F 4 "C1525" H 2150 7200 50  0001 C CNN "LCSC"
+	1    2150 7200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2150 7100 1850 7100
+Wire Wire Line
+	1850 7100 1850 7050
+Connection ~ 1850 7050
+Wire Wire Line
+	1850 7050 1800 7050
+Wire Wire Line
+	2150 7300 2150 7600
+Wire Wire Line
+	2150 7600 2000 7600
+Connection ~ 2000 7600
+Text GLabel 6100 6200 0    50   Input ~ 0
+SDA
+Text GLabel 6100 6350 0    50   Input ~ 0
+SCL
+$Comp
+L sim7070-rescue:R_Small-Device R27
+U 1 1 5F8F71B2
+P 6300 6050
+F 0 "R27" H 6359 6096 50  0000 L CNN
+F 1 "10k" H 6359 6005 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 6300 6050 50  0001 C CNN
+F 3 "~" H 6300 6050 50  0001 C CNN
+F 4 "C25531" H 6300 6050 50  0001 C CNN "LCSC"
+	1    6300 6050
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:R_Small-Device R28
+U 1 1 5F8F8045
+P 6800 6050
+F 0 "R28" H 6859 6096 50  0000 L CNN
+F 1 "10k" H 6859 6005 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 6800 6050 50  0001 C CNN
+F 3 "~" H 6800 6050 50  0001 C CNN
+F 4 "C25531" H 6800 6050 50  0001 C CNN "LCSC"
+	1    6800 6050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6800 5950 6800 5900
+Wire Wire Line
+	6800 5900 6650 5900
+Wire Wire Line
+	6300 5900 6300 5950
+Wire Wire Line
+	6100 6200 6300 6200
+Wire Wire Line
+	6300 6200 6300 6150
+Wire Wire Line
+	6100 6350 6800 6350
+Wire Wire Line
+	6800 6350 6800 6150
+$Comp
+L sim7070-rescue:TestPoint_Small-Connector TP?
+U 1 1 5FE89286
+P 2200 2350
+AR Path="/5F893C1E/5FE89286" Ref="TP?"  Part="1" 
+AR Path="/5FE89286" Ref="TP2"  Part="1" 
+F 0 "TP2" H 2248 2396 50  0000 L CNN
+F 1 "TestPoint_Small" H 2248 2305 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.5x1.5mm" H 2400 2350 50  0001 C CNN
+F 3 "~" H 2400 2350 50  0001 C CNN
+	1    2200 2350
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:TestPoint_Small-Connector TP?
+U 1 1 5FE8C1DE
+P 2200 2550
+AR Path="/5F893C1E/5FE8C1DE" Ref="TP?"  Part="1" 
+AR Path="/5FE8C1DE" Ref="TP3"  Part="1" 
+F 0 "TP3" H 2248 2596 50  0000 L CNN
+F 1 "TestPoint_Small" H 2248 2505 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.5x1.5mm" H 2400 2550 50  0001 C CNN
+F 3 "~" H 2400 2550 50  0001 C CNN
+	1    2200 2550
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:TestPoint_Small-Connector TP?
+U 1 1 5FE8F11B
+P 2200 2750
+AR Path="/5F893C1E/5FE8F11B" Ref="TP?"  Part="1" 
+AR Path="/5FE8F11B" Ref="TP4"  Part="1" 
+F 0 "TP4" H 2248 2796 50  0000 L CNN
+F 1 "TestPoint_Small" H 2248 2705 50  0000 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.5x1.5mm" H 2400 2750 50  0001 C CNN
+F 3 "~" H 2400 2750 50  0001 C CNN
+	1    2200 2750
+	1    0    0    -1  
+$EndComp
+Text GLabel 2200 2350 0    50   Input ~ 0
+VBUS_USB
+Text GLabel 2200 2550 0    50   Input ~ 0
+VBAT
+Wire Wire Line
+	1900 2750 2200 2750
+$Comp
+L sim7070-rescue:Fuse-Device F1
+U 1 1 60228D15
+P 1550 1800
+F 0 "F1" V 1353 1800 50  0000 C CNN
+F 1 "Fuse" V 1444 1800 50  0000 C CNN
+F 2 "Fuse:Fuse_0603_1608Metric" V 1480 1800 50  0001 C CNN
+F 3 "~" H 1550 1800 50  0001 C CNN
+F 4 "C163117" V 1550 1800 50  0001 C CNN "LCSC"
+	1    1550 1800
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1250 1950 2800 1950
+Wire Wire Line
+	3000 1600 3100 1600
+Wire Wire Line
+	3300 2100 3100 2100
+Wire Wire Line
+	2950 2100 2950 1950
+Wire Wire Line
+	2950 1950 2800 1950
+$Comp
+L sim7070-rescue:C_Small-Device C30
+U 1 1 60743939
+P 3100 1800
+F 0 "C30" H 3192 1846 50  0000 L CNN
+F 1 "100n" H 3192 1755 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 3100 1800 50  0001 C CNN
+F 3 "~" H 3100 1800 50  0001 C CNN
+F 4 "C1525" H 3100 1800 50  0001 C CNN "LCSC"
+	1    3100 1800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3100 1700 3100 1600
+Connection ~ 3100 1600
+Wire Wire Line
+	3100 1600 3200 1600
+Wire Wire Line
+	3100 1900 3100 2100
+Connection ~ 3100 2100
+Wire Wire Line
+	3100 2100 2950 2100
+NoConn ~ 3300 1800
+Wire Wire Line
+	3200 1300 3200 1600
+Wire Wire Line
+	1250 1850 1400 1850
+Wire Wire Line
+	1400 1850 1400 1800
+Wire Wire Line
+	1700 1800 1700 1700
+Wire Wire Line
+	1700 1700 1850 1700
+$Comp
+L sim7070-rescue:NDS355N-NDS355N Q4
+U 1 1 6079E13B
+P 7850 4350
+F 0 "Q4" V 7993 4350 50  0000 C CNN
+F 1 "NDS355N" V 8084 4350 50  0000 C CNN
+F 2 "footprints:SSOT-3" H 7850 4350 50  0001 L BNN
+F 3 "" H 7850 4350 50  0001 L BNN
+F 4 "C113202" V 7850 4350 50  0001 C CNN "LCSC"
+	1    7850 4350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7550 4300 7550 4450
+Wire Wire Line
+	7650 4450 7550 4450
+Connection ~ 7550 4450
+Wire Wire Line
+	8200 4300 8200 4450
+$Comp
+L sim7070-rescue:NDS355N-NDS355N Q5
+U 1 1 607AC738
+P 8500 4350
+F 0 "Q5" V 8643 4350 50  0000 C CNN
+F 1 "NDS355N" V 8734 4350 50  0000 C CNN
+F 2 "footprints:SSOT-3" H 8500 4350 50  0001 L BNN
+F 3 "" H 8500 4350 50  0001 L BNN
+F 4 "C113202" V 8500 4350 50  0001 C CNN "LCSC"
+	1    8500 4350
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8300 4450 8200 4450
+Connection ~ 8200 4450
+$Comp
+L sim7070-rescue:NDS355N-NDS355N Q1
+U 1 1 607B9F8F
+P 9050 6100
+F 0 "Q1" V 9193 6100 50  0000 C CNN
+F 1 "NDS355N" V 9284 6100 50  0000 C CNN
+F 2 "footprints:SSOT-3" H 9050 6100 50  0001 L BNN
+F 3 "" H 9050 6100 50  0001 L BNN
+F 4 "C113202" V 9050 6100 50  0001 C CNN "LCSC"
+	1    9050 6100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8750 6050 8750 6200
+Wire Wire Line
+	8850 6200 8750 6200
+Connection ~ 8750 6200
+$Comp
+L sim7070-rescue:DIP-JST-2P-2.0-OPL_Connector J4
+U 1 1 60632471
+P 1150 1900
+F 0 "J4" H 1217 1646 45  0000 C CNN
+F 1 "DIP-JST-2P-2.0" H 1217 1730 45  0000 C CNN
+F 2 "Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal" H 1150 1900 50  0001 C CNN
+F 3 "" H 1150 1900 50  0001 C CNN
+F 4 "320110049" H 1180 2050 20  0001 C CNN "SKU"
+F 5 " C173752" H 1150 1900 50  0001 C CNN "LCSC"
+	1    1150 1900
+	-1   0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:BQ24074RGTR-BQ24074RGTR U9
+U 1 1 60A4ABAB
+P 5250 1950
+F 0 "U9" H 5250 2817 50  0000 C CNN
+F 1 "BQ24074RGTR" H 5250 2726 50  0000 C CNN
+F 2 "SnapEDA Library:QFN50P300X300X100-17N" H 5250 1950 50  0001 L BNN
+F 3 "" H 5250 1950 50  0001 L BNN
+F 4 "1mm" H 5250 1950 50  0001 L BNN "MAXIMUM_PACKAGE_HIEGHT"
+F 5 "M" H 5250 1950 50  0001 L BNN "PARTREV"
+F 6 "IPC 7351B" H 5250 1950 50  0001 L BNN "STANDARD"
+F 7 "Texas Instruments" H 5250 1950 50  0001 L BNN "MANUFACTURER"
+F 8 "C54313" H 5250 1950 50  0001 C CNN "LCSC"
+	1    5250 1950
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0101
+U 1 1 60A51B46
+P 5950 2550
+F 0 "#PWR0101" H 5950 2300 50  0001 C CNN
+F 1 "GND" H 5955 2377 50  0000 C CNN
+F 2 "" H 5950 2550 50  0001 C CNN
+F 3 "" H 5950 2550 50  0001 C CNN
+	1    5950 2550
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:+3V3-power #PWR0112
+U 1 1 60A52203
+P 1900 2750
+F 0 "#PWR0112" H 1900 2600 50  0001 C CNN
+F 1 "+3V3" H 1915 2923 50  0000 C CNN
+F 2 "" H 1900 2750 50  0001 C CNN
+F 3 "" H 1900 2750 50  0001 C CNN
+	1    1900 2750
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C7
+U 1 1 60A535F1
+P 4150 1450
+F 0 "C7" H 4242 1496 50  0000 L CNN
+F 1 "100n" H 4242 1405 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 4150 1450 50  0001 C CNN
+F 3 "~" H 4150 1450 50  0001 C CNN
+F 4 "C1525" H 4150 1450 50  0001 C CNN "LCSC"
+	1    4150 1450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4150 1350 4550 1350
+Text GLabel 4450 1350 1    50   Input ~ 0
+VBUS_USB
+$Comp
+L sim7070-rescue:GND-power #PWR0124
+U 1 1 60A5B450
+P 3300 2100
+F 0 "#PWR0124" H 3300 1850 50  0001 C CNN
+F 1 "GND" H 3305 1927 50  0000 C CNN
+F 2 "" H 3300 2100 50  0001 C CNN
+F 3 "" H 3300 2100 50  0001 C CNN
+	1    3300 2100
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0126
+U 1 1 60A5B857
+P 4150 1550
+F 0 "#PWR0126" H 4150 1300 50  0001 C CNN
+F 1 "GND" H 4155 1377 50  0000 C CNN
+F 2 "" H 4150 1550 50  0001 C CNN
+F 3 "" H 4150 1550 50  0001 C CNN
+	1    4150 1550
+	1    0    0    -1  
+$EndComp
+Text GLabel 4350 1850 0    50   Input ~ 0
+VBAT_CONN
+Wire Wire Line
+	4350 1850 4550 1850
+Wire Wire Line
+	4550 1750 4550 1850
+Connection ~ 4550 1850
+Text GLabel 6100 1650 2    50   Input ~ 0
+VBAT
+Wire Wire Line
+	6100 1650 6050 1650
+Wire Wire Line
+	5950 1750 5950 1650
+Connection ~ 5950 1650
+$Comp
+L sim7070-rescue:C_Small-Device C8
+U 1 1 60A65A2E
+P 6050 1750
+F 0 "C8" H 6142 1796 50  0000 L CNN
+F 1 "4u7" H 6142 1705 50  0000 L CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 6050 1750 50  0001 C CNN
+F 3 "~" H 6050 1750 50  0001 C CNN
+F 4 "C29823" H 6050 1750 50  0001 C CNN "LCSC"
+	1    6050 1750
+	1    0    0    -1  
+$EndComp
+Connection ~ 6050 1650
+Wire Wire Line
+	6050 1650 5950 1650
+$Comp
+L sim7070-rescue:GND-power #PWR0128
+U 1 1 60A65FBD
+P 6200 1950
+F 0 "#PWR0128" H 6200 1700 50  0001 C CNN
+F 1 "GND" H 6205 1777 50  0000 C CNN
+F 2 "" H 6200 1950 50  0001 C CNN
+F 3 "" H 6200 1950 50  0001 C CNN
+	1    6200 1950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6050 1850 6050 1950
+Wire Wire Line
+	6050 1950 6200 1950
+$Comp
+L sim7070-rescue:GND-power #PWR0129
+U 1 1 60A6BEA7
+P 6250 2250
+F 0 "#PWR0129" H 6250 2000 50  0001 C CNN
+F 1 "GND" H 6255 2077 50  0000 C CNN
+F 2 "" H 6250 2250 50  0001 C CNN
+F 3 "" H 6250 2250 50  0001 C CNN
+	1    6250 2250
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5950 2150 6100 2150
+Wire Wire Line
+	6250 2150 6250 2250
+NoConn ~ 4550 2250
+Wire Wire Line
+	5950 1950 5950 1750
+Connection ~ 5950 1750
+Wire Wire Line
+	5950 2050 6100 2050
+Wire Wire Line
+	6100 2050 6100 2150
+Connection ~ 6100 2150
+Wire Wire Line
+	6100 2150 6250 2150
+Wire Wire Line
+	5950 2450 5950 2550
+Connection ~ 5950 2550
+$Comp
+L sim7070-rescue:R_Small-Device R6
+U 1 1 60A7DD63
+P 4450 1550
+F 0 "R6" V 4254 1550 50  0000 C CNN
+F 1 "10k" V 4345 1550 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 4450 1550 50  0001 C CNN
+F 3 "~" H 4450 1550 50  0001 C CNN
+F 4 "C25531" V 4450 1550 50  0001 C CNN "LCSC"
+	1    4450 1550
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	4350 1550 4150 1550
+Connection ~ 4150 1550
+NoConn ~ 5950 2250
+$Comp
+L sim7070-rescue:R_Small-Device R7
+U 1 1 60A8DEA3
+P 4550 2450
+F 0 "R7" H 4609 2496 50  0000 L CNN
+F 1 "2k" H 4609 2405 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 4550 2450 50  0001 C CNN
+F 3 "~" H 4550 2450 50  0001 C CNN
+F 4 "C25552" H 4550 2450 50  0001 C CNN "LCSC"
+	1    4550 2450
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0130
+U 1 1 60A8E254
+P 4550 2550
+F 0 "#PWR0130" H 4550 2300 50  0001 C CNN
+F 1 "GND" H 4555 2377 50  0000 C CNN
+F 2 "" H 4550 2550 50  0001 C CNN
+F 3 "" H 4550 2550 50  0001 C CNN
+	1    4550 2550
+	1    0    0    -1  
+$EndComp
+Text Notes 3650 2450 0    50   ~ 0
+1.780k for 500mA\n
+$Comp
+L sim7070-rescue:R_Small-Device R4
+U 1 1 60A8EB9E
+P 4350 2250
+F 0 "R4" H 4409 2296 50  0000 L CNN
+F 1 "3k1" H 4409 2205 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 4350 2250 50  0001 C CNN
+F 3 "~" H 4350 2250 50  0001 C CNN
+F 4 "C26077" H 4350 2250 50  0001 C CNN "LCSC"
+	1    4350 2250
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4350 2150 4550 2150
+Wire Wire Line
+	4350 2350 4350 2550
+Wire Wire Line
+	4350 2550 4550 2550
+Connection ~ 4550 2550
+Text Notes 3600 2100 0    50   ~ 0
+3k1 for 500mA input current\n
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 60A95286
+P 6050 1150
+AR Path="/5F76B017/60A95286" Ref="D?"  Part="1" 
+AR Path="/60A95286" Ref="D1"  Part="1" 
+F 0 "D1" V 6089 1032 50  0000 R CNN
+F 1 "WHITE" V 5998 1032 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 6050 1150 50  0001 C CNN
+F 3 "~" H 6050 1150 50  0001 C CNN
+F 4 "C2290" V 6050 1150 50  0001 C CNN "LCSC"
+	1    6050 1150
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 60A967B3
+P 6500 1300
+AR Path="/5F76B017/60A967B3" Ref="D?"  Part="1" 
+AR Path="/60A967B3" Ref="D3"  Part="1" 
+F 0 "D3" V 6539 1182 50  0000 R CNN
+F 1 "GREEN" V 6448 1182 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 6500 1300 50  0001 C CNN
+F 3 "~" H 6500 1300 50  0001 C CNN
+	1    6500 1300
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	6500 1450 5950 1450
+Wire Wire Line
+	6050 1300 6050 1350
+Wire Wire Line
+	6050 1350 5950 1350
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 60A9DD33
+P 6200 1000
+AR Path="/5F76B017/60A9DD33" Ref="R?"  Part="1" 
+AR Path="/60A9DD33" Ref="R17"  Part="1" 
+F 0 "R17" H 6270 1046 50  0000 L CNN
+F 1 "500" H 6270 955 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 6130 1000 50  0001 C CNN
+F 3 "~" H 6200 1000 50  0001 C CNN
+F 4 "C23179" H 6200 1000 50  0001 C CNN "LCSC"
+	1    6200 1000
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:R-Device R?
+U 1 1 60A9ECE1
+P 6650 1150
+AR Path="/5F76B017/60A9ECE1" Ref="R?"  Part="1" 
+AR Path="/60A9ECE1" Ref="R18"  Part="1" 
+F 0 "R18" H 6720 1196 50  0000 L CNN
+F 1 "500" H 6720 1105 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 6580 1150 50  0001 C CNN
+F 3 "~" H 6650 1150 50  0001 C CNN
+F 4 "C23179" H 6650 1150 50  0001 C CNN "LCSC"
+	1    6650 1150
+	0    -1   -1   0   
+$EndComp
+Text GLabel 6950 900  2    50   Input ~ 0
+VBAT
+Wire Wire Line
+	6350 1000 6950 1000
+Wire Wire Line
+	6950 1000 6950 900 
+Wire Wire Line
+	6800 1150 6950 1150
+Wire Wire Line
+	6950 1150 6950 1000
+Connection ~ 6950 1000
+$Comp
+L sim7070-rescue:Q_PMOS_SDG-Device Q?
+U 1 1 5F82A666
+P 2800 1700
+AR Path="/5F76B017/5F82A666" Ref="Q?"  Part="1" 
+AR Path="/5F82A666" Ref="Q3"  Part="1" 
+F 0 "Q3" V 3142 1700 50  0000 C CNN
+F 1 "Q_PMOS_SDG" V 3051 1700 50  0000 C CNN
+F 2 "GettingStarted:SOT-23-MOSFET" H 3000 1800 50  0001 C CNN
+F 3 "~" H 2800 1700 50  0001 C CNN
+F 4 "C10487" V 2800 1700 50  0001 C CNN "LCSC"
+	1    2800 1700
+	0    -1   -1   0   
+$EndComp
+Text GLabel 8750 1350 2    50   Input ~ 0
+VBUS_USB
+Text GLabel 4950 5900 0    50   Input ~ 0
+VBUS_USB
+Text GLabel 8750 1450 2    50   Input ~ 0
+USB_CONN_D+
+Text GLabel 8750 1550 2    50   Input ~ 0
+USB_CONN_D-
+$Sheet
+S 4950 5850 850  650 
+U 5F8E40AD
+F0 "MCU" 50
+F1 "file5F8E40AC.sch" 50
+F2 "D+" I L 4950 6000 50 
+F3 "D-" I L 4950 6100 50 
+F4 "V_USB" I L 4950 5900 50 
+$EndSheet
+Wire Wire Line
+	2250 1600 2600 1600
+Text Label 8850 1700 0    50   ~ 0
+MCU_USB+
+Text Label 8850 1800 0    50   ~ 0
+MCU_USB-
+Wire Wire Line
+	8850 1700 8800 1700
+Wire Wire Line
+	8800 1700 8800 1650
+Wire Wire Line
+	8800 1650 8750 1650
+Wire Wire Line
+	8750 1750 8800 1750
+Wire Wire Line
+	8800 1750 8800 1800
+Wire Wire Line
+	8800 1800 8850 1800
+Text Label 4850 6050 2    50   ~ 0
+MCU_USB+
+Wire Wire Line
+	4850 6050 4900 6050
+Wire Wire Line
+	4900 6050 4900 6000
+Wire Wire Line
+	4900 6000 4950 6000
+Text Label 4850 6150 2    50   ~ 0
+MCU_USB-
+Wire Wire Line
+	4850 6150 4900 6150
+Wire Wire Line
+	4900 6150 4900 6100
+Wire Wire Line
+	4900 6100 4950 6100
+$Comp
+L sim7070-rescue:+3V3-power #PWR0141
+U 1 1 60AF40E4
+P 6650 5900
+F 0 "#PWR0141" H 6650 5750 50  0001 C CNN
+F 1 "+3V3" H 6665 6073 50  0000 C CNN
+F 2 "" H 6650 5900 50  0001 C CNN
+F 3 "" H 6650 5900 50  0001 C CNN
+	1    6650 5900
+	1    0    0    -1  
+$EndComp
+Connection ~ 6650 5900
+Wire Wire Line
+	6300 5900 6650 5900
+$Comp
+L sim7070-rescue:C_Small-Device C22
+U 1 1 60AF8EF0
+P 3950 1450
+F 0 "C22" H 4042 1496 50  0000 L CNN
+F 1 "4u7" H 4042 1405 50  0000 L CNN
+F 2 "Capacitor_SMD:C_1206_3216Metric" H 3950 1450 50  0001 C CNN
+F 3 "~" H 3950 1450 50  0001 C CNN
+	1    3950 1450
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3950 1350 4150 1350
+Connection ~ 4150 1350
+Wire Wire Line
+	4150 1550 3950 1550
+$Comp
+L sim7070-rescue:+3V3-power #PWR0144
+U 1 1 60B3B337
+P 7850 3500
+F 0 "#PWR0144" H 7850 3350 50  0001 C CNN
+F 1 "+3V3" H 7865 3673 50  0000 C CNN
+F 2 "" H 7850 3500 50  0001 C CNN
+F 3 "" H 7850 3500 50  0001 C CNN
+	1    7850 3500
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:+3V3-power #PWR0145
+U 1 1 60B3BF13
+P 8500 3500
+F 0 "#PWR0145" H 8500 3350 50  0001 C CNN
+F 1 "+3V3" H 8515 3673 50  0000 C CNN
+F 2 "" H 8500 3500 50  0001 C CNN
+F 3 "" H 8500 3500 50  0001 C CNN
+	1    8500 3500
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:+3V3-power #PWR0146
+U 1 1 60B3EC55
+P 9200 5100
+F 0 "#PWR0146" H 9200 4950 50  0001 C CNN
+F 1 "+3V3" H 9215 5273 50  0000 C CNN
+F 2 "" H 9200 5100 50  0001 C CNN
+F 3 "" H 9200 5100 50  0001 C CNN
+	1    9200 5100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	9200 5100 9200 5250
+Connection ~ 9200 5250
+$Comp
+L sim7070-rescue:+3V3-power #PWR0148
+U 1 1 60B5324E
+P 1900 6950
+F 0 "#PWR0148" H 1900 6800 50  0001 C CNN
+F 1 "+3V3" H 1915 7123 50  0000 C CNN
+F 2 "" H 1900 6950 50  0001 C CNN
+F 3 "" H 1900 6950 50  0001 C CNN
+	1    1900 6950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1900 6950 1900 7050
+NoConn ~ 2250 1800
+NoConn ~ 950  7350
+$Comp
+L sim7070-rescue:SW_DPDT_x2-Switch SW3
+U 1 1 606FFBB6
+P 2050 1700
+F 0 "SW3" H 2050 1985 50  0000 C CNN
+F 1 "SW_DPDT_x2" H 2050 1894 50  0000 C CNN
+F 2 "GettingStarted:SWITCH_3A" H 2050 1700 50  0001 C CNN
+F 3 "~" H 2050 1700 50  0001 C CNN
+F 4 "C319015" H 2050 1700 50  0001 C CNN "LCSC"
+	1    2050 1700
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:LED-Device D?
+U 1 1 5FA1FC90
+P 8500 3650
+AR Path="/5F76B017/5FA1FC90" Ref="D?"  Part="1" 
+AR Path="/5FA1FC90" Ref="D5"  Part="1" 
+F 0 "D5" V 8539 3532 50  0000 R CNN
+F 1 "GREEN" V 8448 3532 50  0000 R CNN
+F 2 "LED_SMD:LED_0603_1608Metric" H 8500 3650 50  0001 C CNN
+F 3 "C72043" H 8500 3650 50  0001 C CNN
+F 4 "C2286" V 8500 3650 50  0001 C CNN "LCSC"
+	1    8500 3650
+	0    -1   -1   0   
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C2
+U 1 1 60CD1DFA
+P 6600 4300
+F 0 "C2" H 6692 4346 50  0000 L CNN
+F 1 "10u" H 6692 4255 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 6600 4300 50  0001 C CNN
+F 3 "~" H 6600 4300 50  0001 C CNN
+F 4 "C19702" H 6600 4300 50  0001 C CNN "LCSC"
+	1    6600 4300
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C1
+U 1 1 60CD211B
+P 5100 4300
+F 0 "C1" H 5192 4346 50  0000 L CNN
+F 1 "10u" H 5192 4255 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0603_1608Metric" H 5100 4300 50  0001 C CNN
+F 3 "~" H 5100 4300 50  0001 C CNN
+F 4 "C19702" H 5100 4300 50  0001 C CNN "LCSC"
+	1    5100 4300
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR0102
+U 1 1 60CD24ED
+P 5900 4700
+F 0 "#PWR0102" H 5900 4450 50  0001 C CNN
+F 1 "GND" H 5905 4527 50  0000 C CNN
+F 2 "" H 5900 4700 50  0001 C CNN
+F 3 "" H 5900 4700 50  0001 C CNN
+	1    5900 4700
+	1    0    0    -1  
+$EndComp
+Text GLabel 4800 4200 0    50   Input ~ 0
+VBAT
+$Comp
+L sim7070-rescue:+3V3-power #PWR0103
+U 1 1 60CD2705
+P 6900 4200
+F 0 "#PWR0103" H 6900 4050 50  0001 C CNN
+F 1 "+3V3" H 6915 4373 50  0000 C CNN
+F 2 "" H 6900 4200 50  0001 C CNN
+F 3 "" H 6900 4200 50  0001 C CNN
+	1    6900 4200
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:XC6220B331MR-Regulator_Linear U1
+U 1 1 60CDEF81
+P 5900 4300
+F 0 "U1" H 5900 4667 50  0000 C CNN
+F 1 "XC6220B331MR" H 5900 4576 50  0000 C CNN
+F 2 "Package_TO_SOT_SMD:SOT-23-5" H 5900 4300 50  0001 C CNN
+F 3 "https://www.torexsemi.com/file/xc6220/XC6220.pdf" H 6650 3300 50  0001 C CNN
+F 4 "C86534" H 5900 4300 50  0001 C CNN "LCSC"
+	1    5900 4300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6400 4200 6600 4200
+Connection ~ 6600 4200
+Wire Wire Line
+	6600 4200 6900 4200
+Wire Wire Line
+	6600 4400 6600 4700
+Wire Wire Line
+	6600 4700 5900 4700
+Connection ~ 5900 4700
+Wire Wire Line
+	4800 4200 5100 4200
+Connection ~ 5100 4200
+Wire Wire Line
+	5100 4200 5400 4200
+Wire Wire Line
+	5100 4400 5100 4700
+Wire Wire Line
+	5100 4700 5900 4700
+Wire Wire Line
+	5400 4400 5400 4200
+Connection ~ 5400 4200
+Text Notes 5150 900  0    50   ~ 0
+PMIC
+Wire Notes Line
+	750  750  7200 750 
+Wire Notes Line
+	7200 750  7200 2950
+Wire Notes Line
+	7200 2950 750  2950
+Wire Notes Line
+	750  2950 750  750 
+Text GLabel 1200 3850 0    50   Input ~ 0
+VDD_EXT
+Text Notes 750  700  0    118  ~ 0
+Input power management
+Wire Notes Line
+	750  5350 750  3200
+Wire Notes Line
+	750  3200 3900 3200
+Wire Notes Line
+	3900 5350 750  5350
+Wire Notes Line
+	3900 3200 3900 5350
+Text GLabel 1500 4050 0    50   Input ~ 0
+MODEM_TXD
+Text GLabel 1500 4150 0    50   Input ~ 0
+MODEM_RXD
+Text GLabel 1500 4450 0    50   Input ~ 0
+MCU_TX
+Text GLabel 1500 4350 0    50   Input ~ 0
+MCU_RX
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 606E9440
+P 2900 4650
+AR Path="/5F76B017/606E9440" Ref="#PWR?"  Part="1" 
+AR Path="/606E9440" Ref="#PWR0125"  Part="1" 
+F 0 "#PWR0125" H 2900 4400 50  0001 C CNN
+F 1 "GND" H 2905 4477 50  0000 C CNN
+F 2 "" H 2900 4650 50  0001 C CNN
+F 3 "" H 2900 4650 50  0001 C CNN
+	1    2900 4650
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:R-Device R16
+U 1 1 606EFADB
+P 1350 3850
+F 0 "R16" H 1420 3896 50  0000 L CNN
+F 1 "10k" H 1420 3805 50  0000 L CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 1280 3850 50  0001 C CNN
+F 3 "~" H 1350 3850 50  0001 C CNN
+	1    1350 3850
+	0    1    1    0   
+$EndComp
+$Comp
+L sim7070-rescue:C_Small-Device C17
+U 1 1 606F1A42
+P 2950 3750
+F 0 "C17" H 3042 3796 50  0000 L CNN
+F 1 "100n" H 3042 3705 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 2950 3750 50  0001 C CNN
+F 3 "~" H 2950 3750 50  0001 C CNN
+F 4 "C1525" H 2950 3750 50  0001 C CNN "LCSC"
+	1    2950 3750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2950 3850 2950 4650
+Wire Wire Line
+	2950 4650 2900 4650
+$Comp
+L sim7070-rescue:C_Small-Device C20
+U 1 1 6070226D
+P 3350 3650
+F 0 "C20" H 3442 3696 50  0000 L CNN
+F 1 "100n" H 3442 3605 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0402_1005Metric" H 3350 3650 50  0001 C CNN
+F 3 "~" H 3350 3650 50  0001 C CNN
+F 4 "C1525" H 3350 3650 50  0001 C CNN "LCSC"
+	1    3350 3650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3350 3750 3350 4650
+Wire Wire Line
+	3350 4650 2950 4650
+Connection ~ 2950 4650
+$Comp
+L sim7070-rescue:TXS0102DCTR-TXS0102DCTR U7
+U 1 1 60A6834D
+P 2200 4150
+F 0 "U7" H 2200 5020 50  0000 C CNN
+F 1 "TXS0102DCTR" H 2200 4929 50  0000 C CNN
+F 2 "SnapEDA Library:SOP65P400X130-8N" H 2200 4150 50  0001 L BNN
+F 3 "" H 2200 4150 50  0001 L BNN
+F 4 "C324082" H 2200 4150 50  0001 C CNN "LCSC"
+	1    2200 4150
+	1    0    0    -1  
+$EndComp
+Connection ~ 2900 4650
+Wire Wire Line
+	3100 3650 2950 3650
+Connection ~ 2950 3650
+Wire Wire Line
+	2950 3650 2900 3650
+Wire Wire Line
+	3250 3550 3350 3550
+Wire Wire Line
+	3350 3550 3450 3550
+Connection ~ 3350 3550
+Text Notes 750  3150 0    118  ~ 0
+Level converter MCU <-> CELLULAR\n
+$Comp
+L sim7070-rescue:+3V3-power #PWR0118
+U 1 1 60A52CE5
+P 3100 3650
+F 0 "#PWR0118" H 3100 3500 50  0001 C CNN
+F 1 "+3V3" H 3115 3823 50  0000 C CNN
+F 2 "" H 3100 3650 50  0001 C CNN
+F 3 "" H 3100 3650 50  0001 C CNN
+	1    3100 3650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3250 3350 3250 3550
+Wire Wire Line
+	2900 3350 3250 3350
+Wire Wire Line
+	2900 3550 2900 3350
+Text GLabel 3450 3550 2    50   Input ~ 0
+VDD_EXT
+Text Notes 4350 3350 0    118  ~ 0
+Voltage regulation
+Wire Notes Line
+	7200 3400 7200 5050
+Wire Notes Line
+	7200 5050 4350 5050
+Wire Notes Line
+	4350 5050 4350 3400
+Wire Notes Line
+	4350 3400 7200 3400
+Wire Notes Line
+	750  5600 3900 5600
+Wire Notes Line
+	3900 5600 3900 6500
+Wire Notes Line
+	3900 6500 750  6500
+Wire Notes Line
+	750  6500 750  5600
+Text Notes 750  5550 0    118  ~ 0
+Modem related stuff
+Wire Notes Line
+	4350 5400 7200 5400
+Wire Notes Line
+	7200 5400 7200 6850
+Wire Notes Line
+	7200 6850 4350 6850
+Wire Notes Line
+	4350 6850 4350 5400
+Text Notes 4350 5350 0    118  ~ 0
+ESP32\n
+Wire Notes Line
+	7450 750  7450 2950
+Wire Notes Line
+	7450 2950 9650 2950
+Wire Notes Line
+	9650 2950 9650 750 
+Wire Notes Line
+	9650 750  7450 750 
+Text Notes 7450 700  0    118  ~ 0
+Connectors\n
+Wire Notes Line
+	7450 3250 9650 3250
+Wire Notes Line
+	9650 3250 9650 6850
+Wire Notes Line
+	9650 6850 7450 6850
+Wire Notes Line
+	7450 6850 7450 3250
+Text Notes 7450 3200 0    118  ~ 0
+Flashy LEDs
+Wire Notes Line
+	750  6750 3900 6750
+Text Notes 750  6700 0    118  ~ 0
+Temperature sense
+$EndSCHEMATC

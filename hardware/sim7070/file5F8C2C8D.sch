@@ -1,0 +1,277 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 3 4
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L sim7070-rescue:USB_B_Micro-Connector J?
+U 1 1 5F8E2807
+P 1200 2850
+AR Path="/5F8E2807" Ref="J?"  Part="1" 
+AR Path="/5F8C2C8E/5F8E2807" Ref="J7"  Part="1" 
+F 0 "J7" H 1257 3317 50  0000 C CNN
+F 1 "USB_B_Micro" H 1257 3226 50  0000 C CNN
+F 2 "GettingStarted:USB_Micro_B_JLC" H 1350 2800 50  0001 C CNN
+F 3 "~" H 1350 2800 50  0001 C CNN
+F 4 "C404969" H 1200 2850 50  0001 C CNN "LCSC"
+	1    1200 2850
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5F8E2810
+P 1150 3300
+AR Path="/5F8E2810" Ref="#PWR?"  Part="1" 
+AR Path="/5F8C2C8E/5F8E2810" Ref="#PWR0120"  Part="1" 
+F 0 "#PWR0120" H 1150 3050 50  0001 C CNN
+F 1 "GND" H 1155 3127 50  0000 C CNN
+F 2 "" H 1150 3300 50  0001 C CNN
+F 3 "" H 1150 3300 50  0001 C CNN
+	1    1150 3300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1200 3250 1200 3300
+Wire Wire Line
+	1200 3300 1150 3300
+$Comp
+L sim7070-rescue:GND-power #PWR0132
+U 1 1 5F9064B7
+P 3550 3950
+F 0 "#PWR0132" H 3550 3700 50  0001 C CNN
+F 1 "GND" H 3555 3777 50  0000 C CNN
+F 2 "" H 3550 3950 50  0001 C CNN
+F 3 "" H 3550 3950 50  0001 C CNN
+	1    3550 3950
+	1    0    0    -1  
+$EndComp
+Text Notes 2850 2550 0    50   ~ 10
+Boot switch\n
+$Comp
+L sim7070-rescue:USB_B_Micro-Connector J?
+U 1 1 5FD45435
+P 1200 1200
+AR Path="/5FD45435" Ref="J?"  Part="1" 
+AR Path="/5F8C2C8E/5FD45435" Ref="J5"  Part="1" 
+F 0 "J5" H 1257 1667 50  0000 C CNN
+F 1 "USB_B_Micro" H 1257 1576 50  0000 C CNN
+F 2 "GettingStarted:USB_Micro_B_JLC" H 1350 1150 50  0001 C CNN
+F 3 "~" H 1350 1150 50  0001 C CNN
+F 4 "C404969" H 1200 1200 50  0001 C CNN "LCSC"
+	1    1200 1200
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5FD4543E
+P 1150 1650
+AR Path="/5FD4543E" Ref="#PWR?"  Part="1" 
+AR Path="/5F8C2C8E/5FD4543E" Ref="#PWR0107"  Part="1" 
+F 0 "#PWR0107" H 1150 1400 50  0001 C CNN
+F 1 "GND" H 1155 1477 50  0000 C CNN
+F 2 "" H 1150 1650 50  0001 C CNN
+F 3 "" H 1150 1650 50  0001 C CNN
+	1    1150 1650
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1200 1600 1200 1650
+Wire Wire Line
+	1200 1650 1150 1650
+Text GLabel 2950 1350 2    50   Input ~ 0
+USB_CONN_D-
+Text GLabel 2950 1150 2    50   Input ~ 0
+USB_CONN_D+
+Text GLabel 2800 1150 0    50   Input ~ 0
+USB_D+
+Text GLabel 2800 1350 0    50   Input ~ 0
+USB_D-
+Wire Wire Line
+	2800 1150 2950 1150
+Wire Wire Line
+	2950 1350 2800 1350
+Text GLabel 4400 1150 0    50   Input ~ 0
+VBUS_USB
+$Comp
+L sim7070-rescue:GND-power #PWR?
+U 1 1 5FDBB9CD
+P 4850 1950
+AR Path="/5FDBB9CD" Ref="#PWR?"  Part="1" 
+AR Path="/5F8C2C8E/5FDBB9CD" Ref="#PWR0123"  Part="1" 
+F 0 "#PWR0123" H 4850 1700 50  0001 C CNN
+F 1 "GND" H 4855 1777 50  0000 C CNN
+F 2 "" H 4850 1950 50  0001 C CNN
+F 3 "" H 4850 1950 50  0001 C CNN
+	1    4850 1950
+	1    0    0    -1  
+$EndComp
+$Comp
+L sim7070-rescue:ESDA6V1-5SC6-Power_Protection D7
+U 1 1 5FDBB14E
+P 4850 1750
+F 0 "D7" H 5180 1796 50  0000 L CNN
+F 1 "ESDA6V1-5SC6" H 5180 1705 50  0000 L CNN
+F 2 "Package_TO_SOT_SMD:SOT-23-6" H 5550 1500 50  0001 C CNN
+F 3 "www.st.com/resource/en/datasheet/esda6v1-5sc6.pdf" V 4850 1750 50  0001 C CNN
+F 4 "C6650" H 4850 1750 50  0001 C CNN "LCSC"
+	1    4850 1750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4400 1150 4650 1150
+Wire Wire Line
+	4650 1100 4950 1100
+Wire Wire Line
+	4950 1100 4950 1550
+Wire Wire Line
+	4650 1400 4850 1400
+Wire Wire Line
+	4850 1400 4850 1550
+Wire Wire Line
+	4650 1400 4650 1150
+$Comp
+L sim7070-rescue:SMD-BUTTON_4P-5.2X5.2X1.5MM-SKQGADE010_-OPL_Switch SW2
+U 1 1 60147813
+P 3550 3200
+F 0 "SW2" H 3550 3554 45  0000 C CNN
+F 1 "SMD-BUTTON_4P-5.2X5.2X1.5MM-SKQGADE010_" H 3550 3470 45  0000 C CNN
+F 2 "OPL_Switch:SW4-SMD-5.2X5.2X1.5MM" H 3550 3200 50  0001 C CNN
+F 3 "" H 3550 3200 50  0001 C CNN
+F 4 "SKQGADE010" H 3580 3350 20  0001 C CNN "MPN"
+F 5 "311020017" H 3580 3350 20  0001 C CNN "SKU"
+F 6 "C318887" H 3550 3200 50  0001 C CNN "LCSC"
+	1    3550 3200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3200 3100 3200 2700
+Wire Wire Line
+	3900 2700 3900 3100
+Wire Wire Line
+	3900 3300 3900 3500
+Wire Wire Line
+	3900 3500 3550 3500
+Wire Wire Line
+	3200 3300 3200 3500
+Wire Wire Line
+	3200 3500 3550 3500
+Connection ~ 3550 3500
+Text GLabel 5200 3950 2    50   Input ~ 0
+MODEM_PWRKEY
+$Comp
+L sim7070-rescue:GND-power #PWR0119
+U 1 1 608CC719
+P 5300 2700
+F 0 "#PWR0119" H 5300 2450 50  0001 C CNN
+F 1 "GND" H 5305 2527 50  0000 C CNN
+F 2 "" H 5300 2700 50  0001 C CNN
+F 3 "" H 5300 2700 50  0001 C CNN
+	1    5300 2700
+	-1   0    0    1   
+$EndComp
+Text Notes 4600 2950 0    50   ~ 10
+Modem on\n\n
+$Comp
+L sim7070-rescue:R_Small-Device R15
+U 1 1 608CC726
+P 5300 2800
+F 0 "R15" V 5104 2800 50  0000 C CNN
+F 1 "10k" V 5195 2800 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 5300 2800 50  0001 C CNN
+F 3 "~" H 5300 2800 50  0001 C CNN
+F 4 "C25531" V 5300 2800 50  0001 C CNN "LCSC"
+	1    5300 2800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5300 3000 5300 2900
+$Comp
+L sim7070-rescue:SMD-BUTTON_4P-5.2X5.2X1.5MM-SKQGADE010_-OPL_Switch SW1
+U 1 1 608CC72F
+P 4950 3500
+F 0 "SW1" H 4950 3854 45  0000 C CNN
+F 1 "SMD-BUTTON_4P-5.2X5.2X1.5MM-SKQGADE010_" H 4950 3770 45  0000 C CNN
+F 2 "OPL_Switch:SW4-SMD-5.2X5.2X1.5MM" H 4950 3500 50  0001 C CNN
+F 3 "" H 4950 3500 50  0001 C CNN
+F 4 "SKQGADE010" H 4980 3650 20  0001 C CNN "MPN"
+F 5 "311020017" H 4980 3650 20  0001 C CNN "SKU"
+F 6 "C318887" H 4950 3500 50  0001 C CNN "LCSC"
+	1    4950 3500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4950 3950 5200 3950
+Wire Wire Line
+	4600 3400 4600 3000
+Wire Wire Line
+	5300 3000 5300 3400
+Wire Wire Line
+	5300 3600 5300 3800
+Wire Wire Line
+	5300 3800 4950 3800
+Wire Wire Line
+	4950 3800 4950 3950
+Wire Wire Line
+	4600 3600 4600 3800
+Wire Wire Line
+	4600 3800 4950 3800
+Connection ~ 4950 3800
+Wire Wire Line
+	4600 3000 5300 3000
+Connection ~ 5300 3000
+NoConn ~ 1100 3250
+NoConn ~ 1100 1600
+NoConn ~ 1500 3050
+NoConn ~ 1500 1400
+Text HLabel 1500 2650 2    50   Input ~ 0
+VBUS_USB
+Text HLabel 1500 2850 2    50   Input ~ 0
+USB_CONN_D+
+Text HLabel 1500 2950 2    50   Input ~ 0
+USB_CONN_D-
+Text HLabel 1500 1000 2    50   Input ~ 0
+VBUS_USB
+Text HLabel 1500 1200 2    50   Input ~ 0
+USB_CONN_MCU_D+
+Text HLabel 1500 1300 2    50   Input ~ 0
+USB_CONN_MCU_D-
+Wire Wire Line
+	4650 1000 4650 1100
+Wire Wire Line
+	5050 1200 5050 1550
+Text HLabel 5050 1200 2    50   Input ~ 0
+USB_CONN_MCU_D+
+Text HLabel 4650 1000 0    50   Input ~ 0
+USB_CONN_MCU_D-
+Wire Wire Line
+	3200 2700 3550 2700
+Wire Wire Line
+	3550 2600 3550 2700
+Connection ~ 3550 2700
+Wire Wire Line
+	3550 2700 3900 2700
+Wire Wire Line
+	3550 3500 3550 3950
+Text GLabel 3550 2600 2    50   Input ~ 0
+~RESET~
+Text Notes 1000 700  0    118  ~ 0
+USB upload esp32\n
+Text Notes 1000 2350 0    118  ~ 0
+AT command USB\n
+Text Notes 4600 800  0    118  ~ 0
+ESD\n
+Text Notes 3100 2350 0    118  ~ 0
+ESP RESET
+Text Notes 4600 2350 0    118  ~ 0
+MODEM MANUAL POWER TOGGLING
+$EndSCHEMATC
