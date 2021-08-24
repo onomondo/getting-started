@@ -137,6 +137,8 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     config.event_task_stack_size = CONFIG_EXAMPLE_MODEM_UART_EVENT_TASK_STACK_SIZE;
     config.event_task_priority = CONFIG_EXAMPLE_MODEM_UART_EVENT_TASK_PRIORITY;
     config.line_buffer_size = CONFIG_EXAMPLE_MODEM_UART_RX_BUFFER_SIZE / 2;
+    // config.baud_rate = 9600;
+    // config.flow_control = SOFTWARE_FLOW
 
     dte = esp_modem_dte_init(&config);
 
@@ -173,28 +175,62 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
-    dce->checkNetwork(dce);
+    for (size_t k = 0; k < 8; k++)
+    {
+        dce->checkNetwork(dce);
+        if (dce->attached == ATTACH_ROAMING)
+            break;
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
+    // dce->scanNetworks(dce);
 
     if (dce->attached != ATTACH_ROAMING)
-    {
-        ESP_ERROR_CHECK(dce->attach(dce));
+    { //at+cops = 4/0
+        dce->attach(dce, 0);
     }
 
     ESP_LOGI(TAG, "Module: %s", dce->name);
-
+    dce->checkNetwork(dce);
     //wait for modem to attach.
     int tries = 0;
     int errorCount = 0;
-    while (dce->attached == ATTACH_SEARCHING)
+    while (dce->attached != ATTACH_ROAMING)
     {
         if (dce->checkNetwork(dce) != ESP_OK)
             errorCount++;
 
         if (errorCount > 10)
             return ESP_FAIL;
+
+        switch (dce->attached)
+        {
+        case ATTACH_NOT_SEARCHING:
+            dce->attach(dce, 1);
+            errorCount++;
+            return ESP_FAIL;
+            break;
+        case ATTACH_SEARCHING:
+            //keep going
+            break;
+        case ATTACH_ROAMING:
+            //success
+            break;
+        case ATTACH_DENIED:
+            //we might get this in case of network whitelist. The device can connect to other networks though!
+            // dce->attach(dce, 1);
+            break;
+        default:
+            break;
+        }
+
         vTaskDelay(pdMS_TO_TICKS(500));
         ++tries;
-        if (tries > 700)
+        if (tries == 120)
+            //clear the FPLMN.
+            esp_modem_dce_clear_fplmn(dce);
+
+        if (tries > 240)
             return ESP_FAIL;
     }
 

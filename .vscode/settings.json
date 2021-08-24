@@ -16,7 +16,8 @@
     "initializer_list": "c",
     "utility": "c",
     "accelerometer.h": "c",
-    "cstring": "c"
+    "cstring": "c",
+    "esp_modem_dce_service.h": "c"
   },
   "idf.portWin": "COM10",
   "idf.flashType": "UART",

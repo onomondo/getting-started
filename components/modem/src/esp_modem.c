@@ -108,12 +108,10 @@ static esp_err_t esp_dte_handle_line(esp_modem_dte_t *esp_dte)
     const char *line = (const char *)(esp_dte->buffer);
     size_t len = strlen(line);
 
-    if (len > 1)
-        ESP_LOGI("AT RESP", "%s", line);
-
     /* Skip pure "\r\n" lines */
     if (len > 2 && !is_only_cr_lf(line, len))
     {
+        ESP_LOGI("AT RESP", "%s", line);
         if (dce->handle_line == NULL)
         {
             /* Received an asynchronous line, but no handler waiting this this */
@@ -578,6 +576,10 @@ modem_dte_t *esp_modem_dte_init(const esp_modem_dte_config_t *config)
     /* Set pattern queue size */
     esp_dte->pattern_queue_size = config->pattern_queue_size;
     res |= uart_pattern_queue_reset(esp_dte->uart_port, config->pattern_queue_size);
+
+    // TESTING
+    // uart_set_rx_full_threshold(esp_dte->uart_port, 64); // full at half. Hopefully we'll have time to clear the buffer?
+
     /* Starting in command mode -> explicitly disable RX interrupt */
     uart_disable_rx_intr(esp_dte->uart_port);
 

@@ -62,6 +62,8 @@ void init_adc();
 float get_batt_voltage();
 void fault_state();
 
+void testline(char *line);
+
 void app_main(void)
 {
     // esp_deep_sleep_start();
@@ -79,6 +81,9 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
+    // char *tmp = "a";
+    // testline(tmp);
+
     //handle low batt
     init_adc();
     float batt = get_batt_voltage();
@@ -94,7 +99,8 @@ void app_main(void)
     }
 
     // cpu clock config. w. dynamic freq. scaling.
-    // esp_pm_config_esp32_t conf = {.max_freq_mhz = 40, .min_freq_mhz = 10, .light_sleep_enable = 0};
+    // esp_pm_config_esp32_t conf = {.max_freq_mhz = 40, .min_freq_mhz = 40, .light_sleep_enable = 0};
+    // esp_pm_configure(&conf);
     int freq = esp_clk_cpu_freq() / 1000000;
     ESP_LOGI(TAG, "Cpu freq: %d MhZ", freq);
 
@@ -127,6 +133,9 @@ void app_main(void)
 
     app_state.net_status = ATTACHED;
 
+    // while (1)
+    //     vTaskDelay(10);
+
     //create a socket.
     status = openSocket("1.2.3.4", 4321);
 
@@ -138,7 +147,7 @@ void app_main(void)
     while (1)
     {
         EventBits_t uxBits;
-        const TickType_t xTicksToWait = 15000 / portTICK_PERIOD_MS;
+        const TickType_t xTicksToWait = 30000 / portTICK_PERIOD_MS;
 
         uxBits = xEventGroupWaitBits(eventGroup, TOUCH_EVENT, pdTRUE, pdTRUE, xTicksToWait);
 
@@ -296,4 +305,49 @@ void fault_state()
     app_state.error_state = 1;
     vTaskDelay(pdMS_TO_TICKS(400));
     powerOff(0);
+}
+
+void testline(char *line)
+{
+    ESP_LOGI("MADE IT HERE", "YEY");
+
+    char l[100] = "(3,\"Telia DK\",\"Telia\",\"23820\",9),(3,\"TDC DK\",\"TDC\",\"23801\",7),,(0,1,2,3,4),(0,1,2)";
+
+    char *networks[10];
+    uint8_t n = 0;
+
+    networks[0] = strtok(l, "(");
+    while (n < 10 && networks[n] != NULL)
+    {
+        networks[++n] = strtok(NULL, "(");
+    }
+
+    for (uint8_t network = 0; network < n; network++)
+    {
+        /* code */
+        char line_copy[40];
+        strcpy(line_copy, networks[network]);
+
+        char *entries[6];
+        // strtok(line_copy, ")");
+
+        ESP_LOGI("TEST", "%s", line_copy);
+        entries[0] = strtok(line_copy, ",");
+
+        uint8_t i = 0;
+        while (entries[i])
+        {
+            entries[++i] = strtok(NULL, ",)");
+            /* code */
+        }
+
+        ESP_LOGI("i", "%d", i);
+        if (i == 5)
+        {
+            for (int j = 0; j < 6 && j < i; j++)
+            {
+                ESP_LOGI("ELEMENT", "%d,%s", j, entries[j]);
+            }
+        }
+    }
 }

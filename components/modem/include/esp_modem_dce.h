@@ -14,16 +14,17 @@
 #pragma once
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "esp_err.h"
 #include "esp_modem_dte.h"
 #include "esp_types.h"
 
-typedef struct modem_dce modem_dce_t;
-typedef struct modem_dte modem_dte_t;
-typedef struct esp_modem_dce esp_modem_dce_t;
+    typedef struct modem_dce modem_dce_t;
+    typedef struct modem_dte modem_dte_t;
+    typedef struct esp_modem_dce esp_modem_dce_t;
 
 /**
  * @brief Result Code from DCE
@@ -67,66 +68,85 @@ typedef struct esp_modem_dce esp_modem_dce_t;
 #define ATTACH_HOME_NETWORK 1
 #define ATTACH_NOT_SEARCHING 0
 
-/**
+    /**
  * @brief Working state of DCE
  *
  */
-typedef enum {
-    MODEM_STATE_PROCESSING, /*!< In processing */
-    MODEM_STATE_SUCCESS,    /*!< Process successfully */
-    MODEM_STATE_FAIL        /*!< Process failed */
-} modem_state_t;
+    typedef enum
+    {
+        MODEM_STATE_PROCESSING, /*!< In processing */
+        MODEM_STATE_SUCCESS,    /*!< Process successfully */
+        MODEM_STATE_FAIL        /*!< Process failed */
+    } modem_state_t;
 
-/**
+    typedef struct
+    {
+        uint8_t accessTechnology;
+        char name[10];
+        /* data */
+    } network;
+
+    struct networks
+    {
+        network availableNetworks[10];
+        int numberOfNetworks;
+    };
+
+    /**
  * @brief DCE(Data Communication Equipment)
  *
  */
-struct modem_dce {
-    char imei[MODEM_IMEI_LENGTH + 1];     /*!< IMEI number */
-    char imsi[MODEM_IMSI_LENGTH + 1];     /*!< IMSI number */
-    char name[MODEM_MAX_NAME_LENGTH];     /*!< Module name */
-    char oper[MODEM_MAX_OPERATOR_LENGTH]; /*!< Operator name */
-    uint8_t act;                          /*!< Access technology */
-    unsigned int attached;
-    bool eDRX;
-    bool PSM;
-    bool psm_enter_notified;
-    bool power_down_notified;
-    const char *prompt;                                                               /*!< Modem prompt string */
-    modem_state_t state;                                                              /*!< Modem working state */
-    modem_mode_t mode;                                                                /*!< Working mode */
-    modem_dte_t *dte;                                                                 /*!< DTE which connect to DCE */
-    esp_err_t (*handle_line)(modem_dce_t *dce, const char *line);                     /*!< Handle line strategy */
-    esp_err_t (*sync)(modem_dce_t *dce);                                              /*!< Synchronization */
-    esp_err_t (*echo_mode)(modem_dce_t *dce, bool on);                                /*!< Echo command on or off */
-    esp_err_t (*store_profile)(modem_dce_t *dce);                                     /*!< Store user settings */
-    esp_err_t (*set_flow_ctrl)(modem_dce_t *dce, modem_flow_ctrl_t flow_ctrl);        /*!< Flow control on or off */
-    esp_err_t (*get_signal_quality)(modem_dce_t *dce, uint32_t *rssi, uint32_t *ber); /*!< Get signal quality */
-    esp_err_t (*get_battery_status)(modem_dce_t *dce, uint32_t *bcs,
-                                    uint32_t *bcl, uint32_t *voltage); /*!< Get battery status */
-    esp_err_t (*get_operator_name)(modem_dce_t *dce);                  /*!< Get operator name */
-    esp_err_t (*define_pdp_context)(modem_dce_t *dce, uint32_t cid,
-                                    const char *type, const char *apn); /*!< Set PDP Contex */
-    esp_err_t (*set_working_mode)(modem_dce_t *dce, modem_mode_t mode); /*!< Set working mode */
-    esp_err_t (*hang_up)(modem_dce_t *dce);                             /*!< Hang up */
-    esp_err_t (*power_down)(modem_dce_t *dce);                          /*!< Normal power down */
-    esp_err_t (*deinit)(modem_dce_t *dce);                              /*!< Deinitialize */
-    esp_err_t (*checkNetwork)(modem_dce_t *dce);
-    esp_err_t (*attach)(modem_dce_t *dce);
-    esp_err_t (*detach)(modem_dce_t *dce);
-    esp_err_t (*set_default_bands)(modem_dce_t *dce);
-    esp_err_t (*enable_psm)(modem_dce_t *dce, uint8_t enable);
-    esp_err_t (*enable_edrx)(modem_dce_t *dce, uint8_t enable);
-};
+    struct modem_dce
+    {
+        char imei[MODEM_IMEI_LENGTH + 1];     /*!< IMEI number */
+        char imsi[MODEM_IMSI_LENGTH + 1];     /*!< IMSI number */
+        char name[MODEM_MAX_NAME_LENGTH];     /*!< Module name */
+        char oper[MODEM_MAX_OPERATOR_LENGTH]; /*!< Operator name */
+        uint8_t act;                          /*!< Access technology */
+        unsigned int attached;
+        bool eDRX;
+        bool PSM;
+        bool psm_enter_notified;
+        bool power_down_notified;
+        struct networks availableNetworks;
+        const char *prompt;                                                               /*!< Modem prompt string */
+        modem_state_t state;                                                              /*!< Modem working state */
+        modem_mode_t mode;                                                                /*!< Working mode */
+        modem_dte_t *dte;                                                                 /*!< DTE which connect to DCE */
+        esp_err_t (*handle_line)(modem_dce_t *dce, const char *line);                     /*!< Handle line strategy */
+        esp_err_t (*sync)(modem_dce_t *dce);                                              /*!< Synchronization */
+        esp_err_t (*echo_mode)(modem_dce_t *dce, bool on);                                /*!< Echo command on or off */
+        esp_err_t (*store_profile)(modem_dce_t *dce);                                     /*!< Store user settings */
+        esp_err_t (*set_flow_ctrl)(modem_dce_t *dce, modem_flow_ctrl_t flow_ctrl);        /*!< Flow control on or off */
+        esp_err_t (*get_signal_quality)(modem_dce_t *dce, uint32_t *rssi, uint32_t *ber); /*!< Get signal quality */
+        esp_err_t (*get_battery_status)(modem_dce_t *dce, uint32_t *bcs,
+                                        uint32_t *bcl, uint32_t *voltage); /*!< Get battery status */
+        esp_err_t (*get_operator_name)(modem_dce_t *dce);                  /*!< Get operator name */
+        esp_err_t (*define_pdp_context)(modem_dce_t *dce, uint32_t cid,
+                                        const char *type, const char *apn); /*!< Set PDP Contex */
+        esp_err_t (*set_working_mode)(modem_dce_t *dce, modem_mode_t mode); /*!< Set working mode */
+        esp_err_t (*hang_up)(modem_dce_t *dce);                             /*!< Hang up */
+        esp_err_t (*power_down)(modem_dce_t *dce);                          /*!< Normal power down */
+        esp_err_t (*deinit)(modem_dce_t *dce);                              /*!< Deinitialize */
+        esp_err_t (*checkNetwork)(modem_dce_t *dce);
+        esp_err_t (*attach)(modem_dce_t *dce, uint8_t autoSelect);
+        esp_err_t (*detach)(modem_dce_t *dce);
+        esp_err_t (*set_default_bands)(modem_dce_t *dce);
+        esp_err_t (*enable_psm)(modem_dce_t *dce, uint8_t enable);
+        esp_err_t (*enable_edrx)(modem_dce_t *dce, uint8_t enable);
 
-/**
+        esp_err_t (*scanNetworks)(modem_dce_t *dce);
+    };
+
+    /**
   * @brief ESP Modem with private resource
   *
   */
-struct esp_modem_dce {
-    void *priv_resource; /*!< Private resource */
-    modem_dce_t parent;  /*!< DCE parent class */
-};
+    struct esp_modem_dce
+    {
+        void *priv_resource; /*!< Private resource */
+        modem_dce_t parent;  /*!< DCE parent class */
+    };
 
 #ifdef __cplusplus
 }
