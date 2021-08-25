@@ -178,8 +178,9 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     for (size_t k = 0; k < 8; k++)
     {
         dce->checkNetwork(dce);
-        if (dce->attached == ATTACH_ROAMING)
+        if (dce->attached == ATTACH_ROAMING || dce->attach == ATTACH_HOME_NETWORK)
             break;
+
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 
@@ -214,7 +215,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     //wait for modem to attach.
     int tries = 0;
     int errorCount = 0;
-    while (dce->attached != ATTACH_ROAMING)
+    while (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
     {
         if (dce->checkNetwork(dce) != ESP_OK)
             errorCount++;

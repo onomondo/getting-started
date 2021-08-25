@@ -592,7 +592,7 @@ esp_err_t esp_modem_dce_attach(modem_dce_t *dce, uint8_t autoSelect)
     if (autoSelect)
         DCE_CHECK(dte->send_cmd(dte, "AT+COPS=0\r", 120000) == ESP_OK, "send command failed", err);
     else
-        DCE_CHECK(dte->send_cmd(dte, "AT+COPS=4,2,\"23801\",7\r", 20000) == ESP_OK, "send command failed", err);
+        DCE_CHECK(dte->send_cmd(dte, "AT+COPS=4,2,\"23820\",7\r", 20000) == ESP_OK, "send command failed", err);
 
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Could not start attach", err);
     ESP_LOGI(DCE_TAG, "Auto attach OK");
