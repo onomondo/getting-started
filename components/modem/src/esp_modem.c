@@ -273,7 +273,7 @@ static void uart_event_task_entry(void *param)
         esp_event_loop_run(esp_dte->event_loop_hdl, pdMS_TO_TICKS(0));
 
         /* Process UART events */
-        if (xQueueReceive(esp_dte->event_queue, &event, pdMS_TO_TICKS(100)))
+        if (xQueueReceive(esp_dte->event_queue, &event, pdMS_TO_TICKS(10)))
         {
             if (esp_dte->parent.dce == NULL)
             {
@@ -288,7 +288,11 @@ static void uart_event_task_entry(void *param)
             switch (event.type)
             {
             case UART_DATA:
-                esp_handle_uart_data(esp_dte);
+
+                if (esp_dte->parent.dce->mode == MODEM_PPP_MODE)
+                    esp_handle_uart_data(esp_dte);
+                else
+                    ESP_LOGW(MODEM_TAG, "Data in command mode. Prevented FIFO overflow.");
                 break;
             case UART_FIFO_OVF:
                 ESP_LOGW(MODEM_TAG, "HW FIFO Overflow");
@@ -458,7 +462,7 @@ static esp_err_t esp_modem_dte_change_mode(modem_dte_t *dte, modem_mode_t new_mo
         break;
     case MODEM_COMMAND_MODE:
         MODEM_CHECK(dce->set_working_mode(dce, new_mode) == ESP_OK, "set new working mode:%d failed", err_restore_mode, new_mode);
-        uart_disable_rx_intr(esp_dte->uart_port);
+        // uart_disable_rx_intr(esp_dte->uart_port);
         uart_flush(esp_dte->uart_port);
         uart_enable_pattern_det_baud_intr(esp_dte->uart_port, '\n', 1, MIN_PATTERN_INTERVAL, MIN_POST_IDLE, MIN_PRE_IDLE);
         uart_pattern_queue_reset(esp_dte->uart_port, esp_dte->pattern_queue_size);
@@ -581,7 +585,7 @@ modem_dte_t *esp_modem_dte_init(const esp_modem_dte_config_t *config)
     // uart_set_rx_full_threshold(esp_dte->uart_port, 64); // full at half. Hopefully we'll have time to clear the buffer?
 
     /* Starting in command mode -> explicitly disable RX interrupt */
-    uart_disable_rx_intr(esp_dte->uart_port);
+    // uart_disable_rx_intr(esp_dte->uart_port);
 
     MODEM_CHECK(res == ESP_OK, "config uart pattern failed", err_uart_pattern);
     /* Create Event loop */

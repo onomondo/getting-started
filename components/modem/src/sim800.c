@@ -414,6 +414,8 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
     esp_modem_dce->parent.power_down_notified = false;
     esp_modem_dce->parent.scanNetworks = esp_modem_dce_scan_network;
 
+    esp_modem_dce->parent.networks.numberOfNetworks = 0;
+
     gpio_config_t pinCfg;
     pinCfg.mode = GPIO_MODE_OUTPUT;
 #ifdef GEN_1

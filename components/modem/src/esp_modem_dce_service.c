@@ -178,9 +178,6 @@ esp_err_t esp_modem_dce_handle_cgsn(modem_dce_t *dce, const char *line)
 
 esp_err_t esp_modem_dce_handle_response_netscan(modem_dce_t *dce, const char *line)
 {
-
-    ESP_LOGI("COPS", "%s", line);
-
     esp_err_t err = ESP_FAIL;
     if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
     {
@@ -192,9 +189,62 @@ esp_err_t esp_modem_dce_handle_response_netscan(modem_dce_t *dce, const char *li
     }
     else if (!strncmp(line, "+COPS", strlen("+COPS")))
     {
-        ESP_LOGI("COPS=?", "%s", line);
 
-        return err;
+        dce->networks.numberOfNetworks = 0;
+
+        //pointer to each network field
+        char *networks[10];
+        uint8_t n = 0;
+        // make local copy as strtok will change string
+        size_t len = strlen(line);
+        char *l = malloc(len + 1);
+        strcpy(l, line);
+
+        networks[0] = strtok(l, "(");
+        while (n < MOODM_MAX_NUMBER_OF_NETWORKS && networks[n] != NULL)
+        { // get pointer to each beginning of (net_act, <long format>, <short. . .. ), (net_act, <long. ..),,(1,2,3),(xxxxx)
+            networks[++n] = strtok(NULL, "(");
+        }
+
+        uint8_t netIdx = 0;
+        for (uint8_t network = 0; network < n - 2; network++) //two last fields not relevant
+        {
+            /* code */
+            char line_copy[50]; //alloc on stack is fine
+
+            // technically it could work without another copy with the strtok_r
+            strcpy(line_copy, networks[network]);
+
+            char *entries[6]; // each field for each network found.
+
+            entries[0] = strtok(line_copy, ",");
+
+            uint8_t i = 0;
+            while (entries[i])
+            {
+                entries[++i] = strtok(NULL, ",)");
+                if (i > 5)
+                {
+                    ESP_LOGE("Netscan", "Rouge string: %s", line_copy);
+                    free(l);
+                    return ESP_FAIL;
+                }
+            }
+
+            if (i == 5) // all fields present.
+            {
+                dce->networks.availableNetworks[netIdx].status = atoi(entries[0]);
+                dce->networks.availableNetworks[netIdx].accessTechnology = atoi(entries[4]);
+                strncpy(dce->networks.availableNetworks[netIdx].mccmnc, entries[3], 6);
+                strncpy(dce->networks.availableNetworks[netIdx].name, entries[1], MODEM_MAX_NETWORKNAME);
+                dce->networks.numberOfNetworks = netIdx + 1;
+                netIdx++;
+            }
+        }
+
+        free(l);
+
+        return ESP_OK;
     }
 
     return err;

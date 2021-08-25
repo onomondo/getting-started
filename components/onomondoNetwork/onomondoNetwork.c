@@ -185,6 +185,25 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
     // dce->scanNetworks(dce);
 
+    //print available networks...
+    for (int k = 0; k < dce->networks.numberOfNetworks; k++)
+    {
+        struct network_t *net = &dce->networks.availableNetworks[k];
+
+        switch (net->accessTechnology)
+        {
+        case 0: //GSM
+            ESP_LOGI("Network: ", "Type: GSM, Name: %s, mccmnc: %s", net->name, net->mccmnc);
+            break;
+        case 7: //LTE
+            ESP_LOGI("Network: ", "Type: LTE-M, Name: %s, mccmnc: %s", net->name, net->mccmnc);
+            break;
+
+        default:
+            break;
+        }
+    }
+
     if (dce->attached != ATTACH_ROAMING)
     { //at+cops = 4/0
         dce->attach(dce, 0);

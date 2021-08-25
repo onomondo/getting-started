@@ -47,6 +47,8 @@ extern "C"
 #define MODEM_MAX_OPERATOR_LENGTH (32) /*!< Max Operator Name Length */
 #define MODEM_IMEI_LENGTH (15)         /*!< IMEI Number Length */
 #define MODEM_IMSI_LENGTH (15)         /*!< IMSI Number Length */
+#define MODEM_MAX_NETWORKNAME (15)
+#define MOODM_MAX_NUMBER_OF_NETWORKS (10)
 
 /**
  * @brief Specific Timeout Constraint, Unit: millisecond
@@ -79,16 +81,18 @@ extern "C"
         MODEM_STATE_FAIL        /*!< Process failed */
     } modem_state_t;
 
-    typedef struct
+    typedef struct network_t
     {
         uint8_t accessTechnology;
-        char name[10];
+        char name[MODEM_MAX_NETWORKNAME + 1];
+        char mccmnc[7];
+        uint8_t status; // 0,1,3 (3 == forbidden)
         /* data */
-    } network;
+    } network_t;
 
-    struct networks
+    struct networks_t
     {
-        network availableNetworks[10];
+        network_t availableNetworks[MOODM_MAX_NUMBER_OF_NETWORKS];
         int numberOfNetworks;
     };
 
@@ -108,7 +112,7 @@ extern "C"
         bool PSM;
         bool psm_enter_notified;
         bool power_down_notified;
-        struct networks availableNetworks;
+        struct networks_t networks;
         const char *prompt;                                                               /*!< Modem prompt string */
         modem_state_t state;                                                              /*!< Modem working state */
         modem_mode_t mode;                                                                /*!< Working mode */
