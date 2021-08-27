@@ -178,7 +178,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     for (size_t k = 0; k < 8; k++)
     {
         dce->checkNetwork(dce);
-        if (dce->attached == ATTACH_ROAMING || dce->attach == ATTACH_HOME_NETWORK)
+        if (dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK)
             break;
 
         vTaskDelay(pdMS_TO_TICKS(500));
@@ -205,12 +205,14 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
         }
     }
 
-    if (dce->attached != ATTACH_ROAMING)
+    if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
     { //at+cops = 4/0
         dce->attach(dce, 0);
     }
 
     ESP_LOGI(TAG, "Module: %s", dce->name);
+    dce->checkNetwork(dce);
+    dce->checkNetwork(dce);
     dce->checkNetwork(dce);
     //wait for modem to attach.
     int tries = 0;
@@ -228,7 +230,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
         case ATTACH_NOT_SEARCHING:
             dce->attach(dce, 1);
             errorCount++;
-            return ESP_FAIL;
+            // return ESP_FAIL;
             break;
         case ATTACH_SEARCHING:
             //keep going
@@ -238,7 +240,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
             break;
         case ATTACH_DENIED:
             //we might get this in case of network whitelist. The device can connect to other networks though!
-            // dce->attach(dce, 1);
+            dce->attach(dce, 1);
             break;
         default:
             break;

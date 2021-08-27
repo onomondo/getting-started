@@ -27,8 +27,10 @@
 /* PRIVATE VARIABLES */
 uint8_t addr = 0x0F;
 
-static esp_err_t i2c_master_read_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr, uint8_t i2c_reg, uint8_t* data_rd, size_t size) {
-    if (size == 0) {
+static esp_err_t i2c_master_read_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr, uint8_t i2c_reg, uint8_t *data_rd, size_t size)
+{
+    if (size == 0)
+    {
         return ESP_OK;
     }
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -41,7 +43,8 @@ static esp_err_t i2c_master_read_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr,
     i2c_master_start(cmd);
     // now send device address (indicating read) & read data
     i2c_master_write_byte(cmd, (i2c_addr << 1) | READ_BIT, 1);
-    if (size > 1) {
+    if (size > 1)
+    {
         i2c_master_read(cmd, data_rd, size - 1, ACK_VAL);
     }
     i2c_master_read_byte(cmd, data_rd + size - 1, NACK_VAL);
@@ -61,7 +64,8 @@ static esp_err_t i2c_master_read_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr,
  * --------|---------------------------|----------------|----------------------|------|
  *
  */
-static esp_err_t i2c_master_write_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr, uint8_t i2c_reg, uint8_t* data_wr, size_t size) {
+static esp_err_t i2c_master_write_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr, uint8_t i2c_reg, uint8_t *data_wr, size_t size)
+{
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     // first, send device address (indicating write) & register to be written
@@ -76,21 +80,23 @@ static esp_err_t i2c_master_write_slave_reg(i2c_port_t i2c_num, uint8_t i2c_addr
     return ret;
 }
 
-static esp_err_t standby(uint8_t enter) {
+static esp_err_t standby(uint8_t enter)
+{
     uint8_t _ctrl;
     readRegister(&_ctrl, KXTJ3_CTRL_REG1);
 
     if (enter)
         _ctrl &= 0x7E;
     else
-        _ctrl |= (0x01 << 7);  // disable standby-mode -> Bit7 = 1 = operating mode
+        _ctrl |= (0x01 << 7); // disable standby-mode -> Bit7 = 1 = operating mode
 
     return writeRegister(KXTJ3_CTRL_REG1, &_ctrl);
 }
 
 esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur, uint8_t polarity);
 
-esp_err_t acc_init() {
+esp_err_t acc_init()
+{
     vTaskDelay(pdMS_TO_TICKS(2));
 
     int i2c_master_port = I2C_NUM_1;
@@ -106,14 +112,16 @@ esp_err_t acc_init() {
 
     ESP_LOGI(TAG, "Config i2c param");
     esp_err_t err = i2c_param_config(i2c_master_port, &conf);
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         return err;
     }
 
     ESP_LOGI(TAG, "Install i2c driver");
     err = i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
 
-    if (err != ESP_OK) {
+    if (err != ESP_OK)
+    {
         return err;
     }
 
@@ -157,7 +165,8 @@ esp_err_t acc_init() {
 //UNUSED///
 ///////////
 
-esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur, uint8_t polarity) {
+esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur, uint8_t polarity)
+{
     // Note that to properly change the value of this register, the PC1 bit in CTRL_REG1must first be set to “0”.
     standby(true);
 
@@ -165,10 +174,10 @@ esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur,
 
     // Build INT_CTRL_REG1
 
-    uint8_t dataToWrite = 0x22;  // Interrupt enabled, active LOW, non-latched
+    uint8_t dataToWrite = 0x22; // Interrupt enabled, active LOW, non-latched
 
     if (polarity)
-        dataToWrite |= (0x01 << 5);  // Active HIGH
+        dataToWrite |= (0x01 << 5); // Active HIGH
 
     //non latched intrupt
     dataToWrite |= 0x01 << 3;
@@ -187,7 +196,7 @@ esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur,
 
     // Build INT_CTRL_REG2
 
-    dataToWrite = 0xBF;  // enable interrupt on all axis any direction - Unlatched
+    dataToWrite = 0xBF; // enable interrupt on all axis any direction - Unlatched
 
     // _DEBBUG("KXTJ3_INT_CTRL_REG1: 0x", dataToWrite);
     returnError = writeRegister(KXTJ3_INT_CTRL_REG2, &dataToWrite);
@@ -226,60 +235,67 @@ esp_err_t acc_interrupt_init(uint16_t threshold, uint8_t moveDur, uint8_t naDur,
     return returnError;
 }
 
-void acc_resetInterrupt() {
+void acc_resetInterrupt()
+{
     uint8_t tmp;
     readRegister(&tmp, KXTJ3_INT_REL);
 
-    if (tmp & 1 << 1) {
+    if (tmp & 1 << 1)
+    {
         ESP_LOGW(TAG, "Wakeup interrupt active...,%#08x", tmp);
-    } else {
+    }
+    else
+    {
         ESP_LOGW(TAG, "Wakeup interrupt NOT active...,%#08x", tmp);
     }
 }
 
-float acc_read_data(int axis) {
+float acc_read_data(int axis)
+{
     int16_t outRAW;
     uint8_t regToRead = 0;
-    switch (axis) {
-        case 0:
-            // X axis
-            regToRead = KXTJ3_OUT_X_L;
-            break;
-        case 1:
-            // Y axis
-            regToRead = KXTJ3_OUT_Y_L;
-            break;
-        case 2:
-            // Z axis
-            regToRead = KXTJ3_OUT_Z_L;
-            break;
+    switch (axis)
+    {
+    case 0:
+        // X axis
+        regToRead = KXTJ3_OUT_X_L;
+        break;
+    case 1:
+        // Y axis
+        regToRead = KXTJ3_OUT_Y_L;
+        break;
+    case 2:
+        // Z axis
+        regToRead = KXTJ3_OUT_Z_L;
+        break;
 
-        default:
-            // Not valid axis return NAN
-            return 0;
-            break;
+    default:
+        // Not valid axis return NAN
+        return 0;
+        break;
     }
 
-    readRegister16((uint8_t*)&outRAW, regToRead);
+    readRegister16((uint8_t *)&outRAW, regToRead);
 
     float outFloat;
     int accelRange = 2;
-    switch (accelRange) {
-        case 2:
-            outFloat = (float)outRAW / 15987;
-            break;
-        case 4:
-            outFloat = (float)outRAW / 7840;
-            break;
-        case 8:
-            outFloat = (float)outRAW / 3883;
-            break;
-        case 16:
-            outFloat = (float)outRAW / 1280;
-            break;
-        default:
-            outFloat = 0;
-            break;
+    switch (accelRange)
+    {
+    case 2:
+        outFloat = (float)outRAW / 15987;
+        break;
+    case 4:
+        outFloat = (float)outRAW / 7840;
+        break;
+    case 8:
+        outFloat = (float)outRAW / 3883;
+        break;
+    case 16:
+        outFloat = (float)outRAW / 1280;
+        break;
+    default:
+        outFloat = 0;
+        break;
     }
 
     return outFloat;

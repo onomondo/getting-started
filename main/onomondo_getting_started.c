@@ -98,6 +98,8 @@ void app_main(void)
         esp_deep_sleep_start();
     }
 
+    ESP_LOGI(TAG, "Batt: %f", batt);
+
     // cpu clock config. w. dynamic freq. scaling.
     // esp_pm_config_esp32_t conf = {.max_freq_mhz = 40, .min_freq_mhz = 40, .light_sleep_enable = 0};
     // esp_pm_configure(&conf);
@@ -137,7 +139,7 @@ void app_main(void)
     //     vTaskDelay(10);
 
     //create a socket.
-    status = openSocket("1.2.3.4", 4321);
+    status = openSocket("8.8.8.8", 53);
 
     if (status != ESP_OK)
         fault_state();
