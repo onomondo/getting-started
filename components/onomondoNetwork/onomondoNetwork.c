@@ -207,13 +207,12 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
     if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
     { //at+cops = 4/0
-        dce->attach(dce, 0);
+        dce->attach(dce, 1);
     }
 
     ESP_LOGI(TAG, "Module: %s", dce->name);
     dce->checkNetwork(dce);
-    dce->checkNetwork(dce);
-    dce->checkNetwork(dce);
+
     //wait for modem to attach.
     int tries = 0;
     int errorCount = 0;

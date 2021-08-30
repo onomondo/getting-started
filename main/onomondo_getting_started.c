@@ -55,14 +55,13 @@ static const char *TAG = "main";
 
 //threads
 void led_task(void *param);
+void watchdog_task(void *param);
 
 //function prototypes
 void powerOff(uint32_t RTCSleepInS);
 void init_adc();
 float get_batt_voltage();
 void fault_state();
-
-void testline(char *line);
 
 void app_main(void)
 {
@@ -111,8 +110,9 @@ void app_main(void)
     app_state.error_state = 0;
 
     // handle the output
-    TaskHandle_t xHandle = NULL;
+    TaskHandle_t xHandle = NULL, xHandleWatchdog = NULL;
     xTaskCreate(led_task, "LED_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandle);
+    xTaskCreate(watchdog_task, "WATCHDOG_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandleWatchdog);
 
     //init sensors
     acc_init();
@@ -309,47 +309,13 @@ void fault_state()
     powerOff(0);
 }
 
-void testline(char *line)
+void watchdog_task(void *param)
 {
-    ESP_LOGI("MADE IT HERE", "YEY");
+    // last resort watchdog. If device has been on for too long we reboot it... ->
+    // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
+    ESP_LOGI(TAG, "Watchdog start");
+    vTaskDelay(pdMS_TO_TICKS(5 * 1000 * 60)); // five minutes
 
-    char l[100] = "(3,\"Telia DK\",\"Telia\",\"23820\",9),(3,\"TDC DK\",\"TDC\",\"23801\",7),,(0,1,2,3,4),(0,1,2)";
-
-    char *networks[10];
-    uint8_t n = 0;
-
-    networks[0] = strtok(l, "(");
-    while (n < 10 && networks[n] != NULL)
-    {
-        networks[++n] = strtok(NULL, "(");
-    }
-
-    for (uint8_t network = 0; network < n; network++)
-    {
-        /* code */
-        char line_copy[40];
-        strcpy(line_copy, networks[network]);
-
-        char *entries[6];
-        // strtok(line_copy, ")");
-
-        ESP_LOGI("TEST", "%s", line_copy);
-        entries[0] = strtok(line_copy, ",");
-
-        uint8_t i = 0;
-        while (entries[i])
-        {
-            entries[++i] = strtok(NULL, ",)");
-            /* code */
-        }
-
-        ESP_LOGI("i", "%d", i);
-        if (i == 5)
-        {
-            for (int j = 0; j < 6 && j < i; j++)
-            {
-                ESP_LOGI("ELEMENT", "%d,%s", j, entries[j]);
-            }
-        }
-    }
+    ESP_LOGI(TAG, "Watchdog timeout");
+    powerOff(1); //sleep one second and reboot.
 }
