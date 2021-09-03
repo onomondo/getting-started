@@ -1,0 +1,3 @@
+bootloader.bin 0x1000
+onomondo_getting_started.bin 0x10000
+partition_table.bin 0x8000 
