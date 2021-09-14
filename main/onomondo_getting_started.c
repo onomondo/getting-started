@@ -314,7 +314,7 @@ void watchdog_task(void *param)
     // last resort watchdog. If device has been on for too long we reboot it... ->
     // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(5 * 1000 * 60)); // five minutes
+    vTaskDelay(pdMS_TO_TICKS(7 * 1000 * 60)); // seven minutes
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1); //sleep one second and reboot.

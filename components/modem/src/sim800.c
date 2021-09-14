@@ -203,6 +203,8 @@ err:
 static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce)
 {
     modem_dte_t *dte = dce->dte;
+
+    dce->define_pdp_context(dce, 1, "IP", "onomondo");
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
     dce->handle_line = esp_modem_dce_handle_response_default;
@@ -227,7 +229,7 @@ static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable)
 
     if (enable && !(dce->PSM)) //only set if not allready activated
         dte->send_cmd(dte, "AT+CPSMS=1,,,\"01011111\",\"00000001\" \r", 500);
-    else if (!enable && dce->PSM)
+    else if (!enable)
         dte->send_cmd(dte, "AT+CPSMS=0\r", 500);
 
     dte->send_cmd(dte, "AT+CPSI?\r", 500);

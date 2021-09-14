@@ -175,10 +175,10 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
-    for (size_t k = 0; k < 8; k++)
+    for (size_t k = 0; k < 10; k++)
     {
         dce->checkNetwork(dce);
-        if (dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK)
+        if (dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK || (dce->attached == ATTACH_NOT_SEARCHING && k > 4))
             break;
 
         vTaskDelay(pdMS_TO_TICKS(500));
@@ -186,24 +186,24 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
     // dce->scanNetworks(dce);
 
-    //print available networks...
-    for (int k = 0; k < dce->networks.numberOfNetworks; k++)
-    {
-        struct network_t *net = &dce->networks.availableNetworks[k];
+    // //print available networks...
+    // for (int k = 0; k < dce->networks.numberOfNetworks; k++)
+    // {
+    //     struct network_t *net = &dce->networks.availableNetworks[k];
 
-        switch (net->accessTechnology)
-        {
-        case 0: //GSM
-            ESP_LOGI("Network: ", "Type: GSM, Name: %s, mccmnc: %s", net->name, net->mccmnc);
-            break;
-        case 7: //LTE
-            ESP_LOGI("Network: ", "Type: LTE-M, Name: %s, mccmnc: %s", net->name, net->mccmnc);
-            break;
+    //     switch (net->accessTechnology)
+    //     {
+    //     case 0: //GSM
+    //         ESP_LOGI("Network: ", "Type: GSM, Name: %s, mccmnc: %s", net->name, net->mccmnc);
+    //         break;
+    //     case 7: //LTE
+    //         ESP_LOGI("Network: ", "Type: LTE-M, Name: %s, mccmnc: %s", net->name, net->mccmnc);
+    //         break;
 
-        default:
-            break;
-        }
-    }
+    //     default:
+    //         break;
+    //     }
+    // }
 
     if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
     { //at+cops = 4/0
@@ -239,7 +239,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
             break;
         case ATTACH_DENIED:
             //we might get this in case of network whitelist. The device can connect to other networks though!
-            dce->attach(dce, 1);
+            dce->attach(dce, 1); // is it needed though?
             break;
         default:
             break;
@@ -251,7 +251,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
             //clear the FPLMN.
             esp_modem_dce_clear_fplmn(dce);
 
-        if (tries > 240)
+        if (tries > 260)
             return ESP_FAIL;
     }
 
@@ -262,14 +262,18 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     /* Get signal quality */
     uint32_t rssi = 0, ber = 0;
     ESP_ERROR_CHECK(dce->get_signal_quality(dce, &rssi, &ber));
+
+    if (rssi > 90)
+        dce->get_signal_quality(dce, &rssi, &ber);
+
     ESP_LOGI(TAG, "rssi: %d, ber: %d", rssi, ber);
     signalQuality = rssi;
 
     // setup psm and edrx
     // In this case PSM does not add any value, as the modem is quite slow to boot.
     // Furthermore, we can tear down the connection quicker by toggling power with the powerpin.
-    dce->enable_edrx(dce, 1);
     dce->enable_psm(dce, 0);
+    dce->enable_edrx(dce, 1);
 
     esp_netif_attach(esp_netif, modem_netif_adapter);
     /* Wait for IP address */
