@@ -365,6 +365,7 @@ esp_err_t forcePowerDown()
     //if psm is supported, do a soft power down
     if (dce->PSM)
     {
+        ESP_LOGI("Main", "PSM ACTIVE");
         if (dce && dte)
         {
             //initialize the stop sequence
@@ -372,17 +373,20 @@ esp_err_t forcePowerDown()
             esp_err_t alive = esp_modem_stop_ppp(dte);
 
             // we just wait for the psm enter notification...
-            // xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
+            xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
 
             int i = 0;
             while (!dce->psm_enter_notified && i < 50)
             {
+                ESP_LOGI("Main", "Waiting for PSM NOTIFIED");
                 vTaskDelay(pdMS_TO_TICKS(200));
                 ++i;
             }
 
             if (dce->psm_enter_notified)
             {
+                ESP_LOGI("Main", "PSM NOTIFIED");
+
                 return ESP_OK;
             }
         }
