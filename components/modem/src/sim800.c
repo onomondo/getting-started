@@ -223,14 +223,16 @@ static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable)
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
 
-    sim800_check_PSM_support(dce);
+    // sim800_check_PSM_support(dce);
 
     dce->handle_line = esp_modem_dce_handle_response_default;
 
-    if (enable && !(dce->PSM)) //only set if not allready activated
-        dte->send_cmd(dte, "AT+CPSMS=1,,,\"01011111\",\"00000001\" \r", 500);
+    if (enable) //only set if not allready activated
+        dte->send_cmd(dte, "AT+CPSMS=1,,,\"00000001\",\"00000010\" \r", 500);
     else if (!enable)
         dte->send_cmd(dte, "AT+CPSMS=0\r", 500);
+
+    sim800_check_PSM_support(dce);
 
     dte->send_cmd(dte, "AT+CPSI?\r", 500);
     return ESP_OK;
@@ -318,10 +320,12 @@ esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
         if (network_active != 0)
         {
             ESP_LOGI("PSM Supported:", "true");
+            dce->PSM = 1;
         }
         else
         {
             ESP_LOGI("PSM Supported:", "false");
+            dce->PSM = 0;
         }
     }
     return ESP_OK;
