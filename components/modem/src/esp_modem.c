@@ -248,6 +248,10 @@ static void esp_handle_uart_data(esp_modem_dte_t *esp_dte)
         }
         return;
     }
+    else
+    {
+        ESP_LOG_BUFFER_HEXDUMP("esp-modem: debug_data", esp_dte->buffer, length, ESP_LOG_DEBUG);
+    }
 
     length = MIN(esp_dte->line_buffer_size, length);
     length = uart_read_bytes(esp_dte->uart_port, esp_dte->buffer, length, portMAX_DELAY);
@@ -289,10 +293,9 @@ static void uart_event_task_entry(void *param)
             {
             case UART_DATA:
 
-                if (esp_dte->parent.dce->mode == MODEM_PPP_MODE)
-                    esp_handle_uart_data(esp_dte);
-                else
-                    ESP_LOGW(MODEM_TAG, "Data in command mode. Prevented FIFO overflow.");
+                // if (esp_dte->parent.dce->mode == MODEM_PPP_MODE)
+                esp_handle_uart_data(esp_dte);
+                // else ESP_LOGW(MODEM_TAG, "Data in command mode. Prevented FIFO overflow.");
                 break;
             case UART_FIFO_OVF:
                 ESP_LOGW(MODEM_TAG, "HW FIFO Overflow");
