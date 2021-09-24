@@ -152,6 +152,10 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     assert(esp_netif);
 
     modem_netif_adapter = esp_modem_netif_setup(dte);
+
+    if (modem_netif_adapter == NULL)
+        return ESP_FAIL;
+
     esp_modem_netif_set_default_handlers(modem_netif_adapter, esp_netif);
 
     switch (modem)
@@ -277,8 +281,13 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
     esp_netif_attach(esp_netif, modem_netif_adapter);
     /* Wait for IP address */
-    xEventGroupWaitBits(event_group, CONNECT_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
 
+    EventBits_t uxBits;
+    const TickType_t xTicksToWait = 20000 / portTICK_PERIOD_MS;
+
+    uxBits = xEventGroupWaitBits(event_group, CONNECT_BIT, pdTRUE, pdTRUE, xTicksToWait);
+    if (!(uxBits & CONNECT_BIT))
+        return ESP_FAIL;
     initialized = 1;
     return ESP_OK;
 }

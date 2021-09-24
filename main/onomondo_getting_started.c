@@ -18,6 +18,10 @@
 #include "onomondoNetwork.h"
 #include "temperatureSensor.h"
 #include "touchPad.h"
+#include "ping/ping_sock.h"
+#include "lwip/inet.h"
+#include "lwip/sockets.h"
+#include "esp_netif.h"
 
 #define LED_LOGO 25
 #define LED_1 4
@@ -38,9 +42,10 @@ enum NET_STATUS
 
 // Global var. for app state.
 // probably not suitable for atomic writes....
-volatile struct
+RTC_DATA_ATTR struct
 {
     enum NET_STATUS net_status;
+    uint8_t timeout_count;
     uint8_t error_state;
 } app_state;
 
@@ -62,6 +67,10 @@ void powerOff(uint32_t RTCSleepInS);
 void init_adc();
 float get_batt_voltage();
 void fault_state();
+static void test_on_ping_success(esp_ping_handle_t hdl, void *args);
+static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args);
+static void test_on_ping_end(esp_ping_handle_t hdl, void *args);
+void initialize_ping();
 
 void app_main(void)
 {
@@ -80,6 +89,9 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
+    app_state.timeout_count = 0;
+
+    ESP_LOGI("Error state", "%d", app_state.error_state);
     // char *tmp = "a";
     // testline(tmp);
 
@@ -107,8 +119,7 @@ void app_main(void)
 
     //init app status
     app_state.net_status = DETACHED;
-    app_state.error_state = 0;
-
+    // app_state.error_state = 1;
     // handle the output
     TaskHandle_t xHandle = NULL, xHandleWatchdog = NULL;
     xTaskCreate(led_task, "LED_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandle);
@@ -133,62 +144,69 @@ void app_main(void)
     if (status != ESP_OK)
         fault_state();
 
+    // app_state.error_state = 0;
     app_state.net_status = ATTACHED;
 
     // while (1)
     //     vTaskDelay(10);
 
-    //create a socket.
-    status = openSocket("8.8.8.8", 53);
+    initialize_ping();
 
-    if (status != ESP_OK)
-        fault_state();
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
-    app_state.net_status = IP;
+    while (!app_state.error_state)
+        vTaskDelay(100);
 
-    while (1)
-    {
-        EventBits_t uxBits;
-        const TickType_t xTicksToWait = 30000 / portTICK_PERIOD_MS;
+    // //create a socket.
+    // status = openSocket("8.8.8.8", 53);
 
-        uxBits = xEventGroupWaitBits(eventGroup, TOUCH_EVENT, pdTRUE, pdTRUE, xTicksToWait);
+    // if (status != ESP_OK)
+    //     fault_state();
 
-        if (!(uxBits & TOUCH_EVENT))
-            break;
+    // app_state.net_status = IP;
 
-        if (status == ESP_OK)
-        {
-            tmp_read(&temp, &hum);
-            float signal = getSignalQuality();
-            float battery = get_batt_voltage();
+    // while (1)
+    // {
+    //     // EventBits_t uxBits;
+    //     // const TickType_t xTicksToWait = 30000 / portTICK_PERIOD_MS;
 
-            char payload[100]; // = "Hello from onomondo...!";
+    //     // uxBits = xEventGroupWaitBits(eventGroup, TOUCH_EVENT, pdTRUE, pdTRUE, xTicksToWait);
 
-            sprintf(payload, "{\"battery\": %f,\"signal\": %f,\"temperature\": %f}", battery, signal, temp);
-            app_state.net_status = TRANSMITTING;
-            status = sendData(payload, strlen(payload), 0);
+    //     // if (!(uxBits & TOUCH_EVENT))
+    //     //     break;
 
-            app_state.net_status = IP;
-            if (status == ESP_OK)
-            {
-                ESP_LOGI("Transmit", "%s", payload);
-            }
-            else
-            {
-                ESP_LOGE(TAG, "Failed to transmit...");
-                app_state.error_state = 1;
-                vTaskDelay(pdMS_TO_TICKS(500));
-                break;
-            }
-        }
+    //     if (status == ESP_OK)
+    //     {
+    //         // tmp_read(&temp, &hum);
+    //         // float signal = getSignalQuality();
+    //         // float battery = get_batt_voltage();
 
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
+    //         char payload[100] = "Hello...!";
 
-    closeSocket();
+    //         // sprintf(payload, "{\"battery\": %f,\"signal\": %f,\"temperature\": %f}", battery, signal, temp);
+    //         app_state.net_status = TRANSMITTING;
+    //         status = sendData(payload, strlen(payload), 0);
 
+    //         app_state.net_status = IP;
+    //         if (status == ESP_OK)
+    //         {
+    //             ESP_LOGI("Transmit", "%s", payload);
+    //         }
+    //         else
+    //         {
+    //             ESP_LOGE(TAG, "Failed to transmit...");
+    //             app_state.error_state = 1;
+    //             break;
+    //         }
+    //     }
+
+    //     vTaskDelay(pdMS_TO_TICKS(2000));
+    // }
+
+    // closeSocket();
+
+    powerOff(1);
     vTaskDelete(xHandle);
-    powerOff(0);
 }
 
 void powerOff(uint32_t RTCSleepInS)
@@ -244,7 +262,7 @@ void led_task(void *param)
         //error led
         if (error)
         {
-            if (timing % 8 == 0)
+            if (timing % 2 == 0)
             {
                 error_led = error_led ? 0 : 1; //flip at fixed interval...
             }
@@ -306,7 +324,7 @@ void fault_state()
 {
     app_state.error_state = 1;
     vTaskDelay(pdMS_TO_TICKS(400));
-    powerOff(0);
+    powerOff(1);
 }
 
 void watchdog_task(void *param)
@@ -314,8 +332,102 @@ void watchdog_task(void *param)
     // last resort watchdog. If device has been on for too long we reboot it... ->
     // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(7 * 1000 * 60)); // seven minutes
+
+    //as long as we receive ping do nothing :P
+    do
+    {
+        vTaskDelay(pdMS_TO_TICKS(3 * 1000 * 60)); //
+
+    } while (!app_state.error_state);
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1); //sleep one second and reboot.
+}
+
+//////////////////////////
+// ping related stuff //
+static void test_on_ping_success(esp_ping_handle_t hdl, void *args)
+{
+    // optionally, get callback arguments
+    // const char* str = (const char*) args;
+    // printf("%s\r\n", str); // "foo"
+    uint8_t ttl;
+    uint16_t seqno;
+    uint32_t elapsed_time, recv_len;
+    ip_addr_t target_addr;
+    esp_ping_get_profile(hdl, ESP_PING_PROF_SEQNO, &seqno, sizeof(seqno));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_TTL, &ttl, sizeof(ttl));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &target_addr, sizeof(target_addr));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_SIZE, &recv_len, sizeof(recv_len));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_TIMEGAP, &elapsed_time, sizeof(elapsed_time));
+    ESP_LOGI("PING:", "%d bytes from %s icmp_seq=%d ttl=%d time=%d ms\n",
+             recv_len, inet_ntoa(target_addr.u_addr.ip4), seqno, ttl, elapsed_time);
+
+    app_state.error_state = 0;
+    app_state.timeout_count = 0;
+}
+
+static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args)
+{
+
+    app_state.timeout_count++;
+
+    uint16_t seqno;
+    ip_addr_t target_addr;
+    esp_ping_get_profile(hdl, ESP_PING_PROF_SEQNO, &seqno, sizeof(seqno));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_IPADDR, &target_addr, sizeof(target_addr));
+    ESP_LOGI("PING:", "From %s icmp_seq=%d timeout\n", inet_ntoa(target_addr.u_addr.ip4), seqno);
+
+    if (app_state.timeout_count > 1)
+        app_state.error_state = 1;
+}
+
+static void test_on_ping_end(esp_ping_handle_t hdl, void *args)
+{
+    uint32_t transmitted;
+    uint32_t received;
+    uint32_t total_time_ms;
+
+    esp_ping_get_profile(hdl, ESP_PING_PROF_REQUEST, &transmitted, sizeof(transmitted));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_REPLY, &received, sizeof(received));
+    esp_ping_get_profile(hdl, ESP_PING_PROF_DURATION, &total_time_ms, sizeof(total_time_ms));
+    ESP_LOGI("PING:", "%d packets transmitted, %d received, time %dms\n", transmitted, received, total_time_ms);
+}
+
+void initialize_ping()
+{
+    /* convert URL to IP address */
+    ip_addr_t target_addr = IPADDR4_INIT_BYTES(8, 8, 8, 8);
+
+    esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
+    ping_config.target_addr = target_addr;       // target IP address
+    ping_config.count = ESP_PING_COUNT_INFINITE; // ping in infinite mode, esp_ping_stop can stop it
+    ping_config.interval_ms = 30 * 1000;
+    ping_config.timeout_ms = 800;
+    /* set callback functions */
+    esp_ping_callbacks_t cbs;
+    cbs.on_ping_success = test_on_ping_success;
+    cbs.on_ping_timeout = test_on_ping_timeout;
+    cbs.on_ping_end = test_on_ping_end;
+    cbs.cb_args = NULL; // arguments that will feed to all callback functions, can be NULL
+
+    esp_ping_handle_t ping;
+    esp_err_t err = esp_ping_new_session(&ping_config, &cbs, &ping);
+
+    switch (err)
+    {
+    case ESP_ERR_INVALID_ARG:
+        ESP_LOGI("PING", "Invalid arg");
+        break;
+    case ESP_FAIL:
+        ESP_LOGI("PING", "Invalid arg");
+        break;
+    case ESP_OK:
+        ESP_LOGI("PING", "OK");
+
+    default:
+        break;
+    }
+
+    esp_ping_start(ping);
 }

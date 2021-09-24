@@ -266,7 +266,6 @@ static esp_err_t sim800_check_PSM_support(modem_dce_t *dce)
 esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line)
 {
     esp_err_t err = ESP_FAIL;
-    esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
     if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
     {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
@@ -274,6 +273,7 @@ esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line)
     else if (strstr(line, MODEM_RESULT_CODE_ERROR))
     {
         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
+        dce->eDRX = false;
     }
     else if (strncmp(line, "+CEDRXRDP: 0", strlen("+CEDRXRDP: 0")) == 0)
     {
@@ -295,7 +295,7 @@ esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line)
 esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
 {
     esp_err_t err = ESP_FAIL;
-    esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
+
     if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
     {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
@@ -308,15 +308,15 @@ esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
     {
         //parse response.
         uint32_t mode, requested_active, requested_tau, network_active, Network_T3412_EXT_value, Network_T3412_value;
-        char buf[20];
         int matched = sscanf(line, "+CPSMRDP: %d,%d,%d,%d,%d,%d", &mode, &requested_active, &requested_tau, &network_active, &Network_T3412_EXT_value, &Network_T3412_value);
 
-        // ESP_LOGI("PSM CHECK", "%s", line);
-        // ESP_LOGI("PSM CHECK", "%d,%d,%d,%d,%d,%d", mode, requested_active, requested_tau, network_active, Network_T3412_EXT_value, Network_T3412_value);
-        // ESP_LOGI("PSM CHECK", "Active: %d", network_active);
         if (matched < 5)
+        {
+            dce->PSM = 0;
             return ESP_FAIL;
+        }
 
+        err = ESP_OK;
         if (network_active != 0)
         {
             ESP_LOGI("PSM Supported:", "true");
@@ -328,7 +328,7 @@ esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
             dce->PSM = 0;
         }
     }
-    return ESP_OK;
+    return err;
 }
 
 static esp_err_t sim800_check_eDRX_support(modem_dce_t *dce)
