@@ -135,7 +135,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Temperature: %f", temp);
     eventGroup = xEventGroupCreate();
 
-    //init touchpad. Uses the eventgroup to signal main thread.
+    //init touchpad. Uses the eventgroup to signal main thre    ad.
     touchpad_init(&eventGroup, TOUCH_EVENT);
 
     //initialize the cellular connection. Registers the PPPoS with on the network stack.

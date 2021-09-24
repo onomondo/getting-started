@@ -179,6 +179,8 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
+    dce->attach(dce, 0);
+
     for (size_t k = 0; k < 10; k++)
     {
         dce->checkNetwork(dce);
@@ -211,7 +213,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
     if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
     { //at+cops = 4/0
-        dce->attach(dce, 1);
+        dce->attach(dce, 0);
     }
 
     ESP_LOGI(TAG, "Module: %s", dce->name);
@@ -277,7 +279,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     // In this case PSM does not add any value, as the modem is quite slow to boot.
     // Furthermore, we can tear down the connection quicker by toggling power with the powerpin.
     dce->enable_psm(dce, 0);
-    dce->enable_edrx(dce, 1);
+    dce->enable_edrx(dce, 0);
 
     esp_netif_attach(esp_netif, modem_netif_adapter);
     /* Wait for IP address */
