@@ -179,7 +179,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
-    dce->attach(dce, 0);
+    dce->attach(dce, 1);
 
     for (size_t k = 0; k < 10; k++)
     {

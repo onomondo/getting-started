@@ -161,32 +161,39 @@ void app_main(void)
     // POST
     const char *post_data = (const char *)malloc(2000);
     char url[150];
-    uint32_t random = esp_random();
 
-    sprintf(url, "http://%7u.watchdog.icanhaziot.com", random);
-
-    ESP_LOGI("HTTP", "%s", url);
-
-    esp_http_client_set_url(client, url);
-    esp_http_client_set_method(client, HTTP_METHOD_POST);
-    // esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_post_field(client, post_data, 2000);
-    err = esp_http_client_perform(client);
-    if (err == ESP_OK)
+    do
     {
-        ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
-                 esp_http_client_get_status_code(client),
-                 esp_http_client_get_content_length(client));
-    }
-    else
-    {
-        ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
-    }
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
+        uint32_t random = esp_random();
 
-    while (!app_state.error_state)
-        vTaskDelay(100);
+        sprintf(url, "http://%7u.watchdog.icanhaziot.com", random);
+
+        ESP_LOGI("HTTP", "%s", url);
+
+        esp_http_client_set_url(client, url);
+        esp_http_client_set_method(client, HTTP_METHOD_POST);
+        // esp_http_client_set_header(client, "Content-Type", "application/json");
+        esp_http_client_set_post_field(client, post_data, 2000);
+        err = esp_http_client_perform(client);
+        if (err == ESP_OK)
+        {
+            ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
+                     esp_http_client_get_status_code(client),
+                     esp_http_client_get_content_length(client));
+            app_state.error_state = 0;
+        }
+        else
+        {
+            ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+            app_state.error_state = 1;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(30000));
+    } while (app_state.error_state == 0);
+
+    // while (!app_state.error_state)
+    //     vTaskDelay(100);
 
     // //create a socket.
     // status = openSocket("8.8.8.8", 53);
@@ -236,7 +243,7 @@ void app_main(void)
 
     // closeSocket();
 
-    powerOff(1);
+    powerOff(10);
     vTaskDelete(xHandle);
 }
 
