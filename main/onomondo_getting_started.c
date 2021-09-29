@@ -159,7 +159,8 @@ void app_main(void)
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // POST
-    const char *post_data = (const char *)malloc(2000);
+    // const char *post_data = (const char *)malloc(2000);
+    const char *post_data = calloc(2000, sizeof(uint8_t));
     char url[150];
 
     do
