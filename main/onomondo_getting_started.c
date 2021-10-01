@@ -151,6 +151,8 @@ void app_main(void)
     // while (1)
     //     vTaskDelay(10);
 
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
     // initialize_ping();
     esp_http_client_config_t config = {
         .disable_auto_redirect = true,
@@ -189,6 +191,8 @@ void app_main(void)
             ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
             app_state.error_state = 1;
         }
+
+        powerOff(25);
 
         vTaskDelay(pdMS_TO_TICKS(30000));
     } while (app_state.error_state == 0);
