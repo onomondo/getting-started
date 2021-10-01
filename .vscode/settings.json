@@ -17,7 +17,14 @@
     "utility": "c",
     "accelerometer.h": "c",
     "cstring": "c",
-    "esp_modem_dce_service.h": "c"
+    "esp_modem_dce_service.h": "c",
+    "fx.h": "c",
+    "fastled.h": "c",
+    "ios": "cpp",
+    "random": "cpp",
+    "locale": "cpp",
+    "atomic": "cpp",
+    "bitset": "cpp"
   },
   "idf.portWin": "COM10",
   "idf.flashType": "UART",

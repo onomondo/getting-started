@@ -96,6 +96,7 @@ void app_main(void)
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
         esp_deep_sleep_start();
     }
+    gpio_set_level(LED_LOGO, 1);
 
     ESP_LOGI(TAG, "Batt: %f", batt);
 
