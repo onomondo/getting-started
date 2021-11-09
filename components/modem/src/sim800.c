@@ -208,7 +208,8 @@ static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce)
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",3,8,20\r", 500);
+    // dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",3,8,20\r", 500);
+    dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,14,18,19,20,28\r", 500);
     dce->handle_line = esp_modem_dce_handle_response_default;
     dte->send_cmd(dte, "AT+CNMP=51\r", 500);
     dce->handle_line = esp_modem_dce_handle_response_default;
