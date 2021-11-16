@@ -179,9 +179,9 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
     // ESP_ERROR_CHECK(dce->store_profile(dce));
 
-    dce->attach(dce, 1);
+    // dce->attach(dce, 1);
 
-    for (size_t k = 0; k < 10; k++)
+    for (size_t k = 0; k < 15; k++)
     {
         dce->checkNetwork(dce);
         if (dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK || (dce->attached == ATTACH_NOT_SEARCHING && k > 4))
@@ -212,7 +212,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     // }
 
     if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
-    { //at+cops = 4/0
+    { //at+cops = 5/0
         dce->attach(dce, 0);
     }
 
@@ -227,7 +227,7 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
         if (dce->checkNetwork(dce) != ESP_OK)
             errorCount++;
 
-        if (errorCount > 10)
+        if (errorCount > 20)
             return ESP_FAIL;
 
         switch (dce->attached)
