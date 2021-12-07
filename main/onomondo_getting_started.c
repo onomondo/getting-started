@@ -157,7 +157,8 @@ void app_main(void)
     esp_http_client_config_t config = {
         .disable_auto_redirect = true,
         .url = "http://google.org",
-    };
+        .port = 6443};
+
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
     // POST
@@ -170,9 +171,9 @@ void app_main(void)
 
         uint32_t random = esp_random();
 
-        sprintf(url, "http://%7u.watchdog.icanhaziot.com", random);
+        sprintf(url, "http://%7u.watchdog.icanhaziot.com:6000", random);
 
-        ESP_LOGI("HTTP", "%s", url);
+        ESP_LOGI("HTTP(s)", "%s", url);
 
         esp_http_client_set_url(client, url);
         esp_http_client_set_method(client, HTTP_METHOD_POST);
