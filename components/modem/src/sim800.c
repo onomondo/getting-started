@@ -414,6 +414,9 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
     esp_modem_dce->parent.set_default_bands = esp_modem_dce_set_default_bands;
     esp_modem_dce->parent.enable_psm = esp_modem_enable_PSM;
     esp_modem_dce->parent.enable_edrx = esp_modem_enable_eDRX;
+    reg_status_t status = {0, 0, 0};
+    esp_modem_dce->parent.network_status = status;
+    esp_modem_dce->parent.operatorMode = 0;
 
     esp_modem_dce->parent.eDRX = false;
     esp_modem_dce->parent.PSM = false;
@@ -428,7 +431,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
 #ifdef GEN_1
     pinCfg.pin_bit_mask = (1UL << PWR_PIN) | (1UL << RST_PIN) | (1UL << PWR_ON_PIN); //power key // reset key // power on // on board led
 #else
-    pinCfg.pin_bit_mask = (1UL << PWR_PIN); //power key // reset key // power on // on board led
+    pinCfg.pin_bit_mask = ((uint64_t)1 << PWR_PIN); //power key // reset key // power on // on board led
 #endif
 
     pinCfg.intr_type = GPIO_INTR_DISABLE;

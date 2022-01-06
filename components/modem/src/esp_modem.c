@@ -84,6 +84,66 @@ static inline bool is_only_cr_lf(const char *str, uint32_t len)
     return true;
 }
 
+esp_err_t handle_urc(const char *line, size_t len, esp_modem_dte_t *esp_dte)
+{
+    modem_dce_t *dce = esp_dte->parent.dce;
+
+    if (strstr(line, "NORMAL POWER"))
+    {
+        esp_event_post_to(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_MODEM_EVENT_POWER_DOWN,
+                          NULL, 0, pdMS_TO_TICKS(100));
+        ESP_LOGI(MODEM_TAG, "Power down notified");
+        return ESP_OK;
+    }
+    else if (strstr(line, "ENTER PSM"))
+    {
+        esp_event_post_to(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_MODEM_EVENT_POWER_DOWN,
+                          NULL, 0, pdMS_TO_TICKS(100));
+        ESP_LOGI(MODEM_TAG, "PSM enter notified");
+        return ESP_OK;
+    }
+    else if (strstr(line, "REG"))
+    {
+        char *start = strstr(line, "+");
+        int matches = 0, status = 0, param2 = 0;
+
+        if (!start)
+            return ESP_FAIL;
+
+        if (strstr(line, "CREG:"))
+        {
+            matches = sscanf(start, "+CREG: %d,%d", &status, &param2);
+            if (matches == 1)
+                dce->network_status.CREG = status;
+            else if (matches == 2)
+                dce->network_status.CREG = param2;
+        }
+        else if (strstr(line, "CEREG:"))
+        {
+            matches = sscanf(start, "+CEREG: %d,%d", &status, &param2);
+            if (matches == 1)
+                dce->network_status.CEREG = status;
+            else if (matches == 2)
+                dce->network_status.CEREG = param2;
+        }
+        else if (strstr(line, "CGREG:"))
+        {
+            matches = sscanf(start, "+CGREG: %d,%d", &status, &param2);
+
+            if (matches == 1)
+                dce->network_status.CGREG = status;
+            else if (matches == 2)
+                dce->network_status.CGREG = param2;
+        }
+
+        if (matches)
+            esp_event_post_to(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_MODEM_EVENT_NETWORK_STATUS,
+                              (void *)&(dce->network_status), sizeof(reg_status_t), pdMS_TO_TICKS(100));
+    }
+
+    return ESP_OK;
+}
+
 esp_err_t esp_modem_set_rx_cb(modem_dte_t *dte, esp_modem_on_receive receive_cb, void *receive_cb_ctx)
 {
     esp_modem_dte_t *esp_dte = __containerof(dte, esp_modem_dte_t, parent);
@@ -115,23 +175,25 @@ static esp_err_t esp_dte_handle_line(esp_modem_dte_t *esp_dte)
         if (dce->handle_line == NULL)
         {
             /* Received an asynchronous line, but no handler waiting this this */
-            ESP_LOGI(MODEM_TAG, "No handler for line: %s", line);
 
-            if (strstr(line, "NORMAL POWER"))
+            if (handle_urc(line, len, esp_dte) == ESP_FAIL)
             {
-                dce->power_down_notified = true;
-                ESP_LOGI(MODEM_TAG, "Power down notified");
-            }
-            else if (strstr(line, "ENTER PSM"))
-            {
-                dce->psm_enter_notified = true;
-                ESP_LOGI(MODEM_TAG, "PSM enter notified");
-            }
+                ESP_LOGI(MODEM_TAG, "No handler for line: %s", line);
 
-            err = ESP_OK; /* Not an error, just propagate the line to user handler */
-            goto post_event_unknown;
+                goto post_event_unknown;
+            }
+            else
+            {
+                return ESP_OK;
+            }
         }
-        MODEM_CHECK(dce->handle_line(dce, line) == ESP_OK, "handle line failed", post_event_unknown);
+        if (dce->handle_line(dce, line) != ESP_OK)
+        {
+            if (handle_urc(line, len, esp_dte) == ESP_FAIL)
+                goto post_event_unknown;
+            else
+                return ESP_OK;
+        }
     }
     return ESP_OK;
 post_event_unknown:
@@ -641,6 +703,12 @@ esp_err_t esp_modem_remove_event_handler(modem_dte_t *dte, esp_event_handler_t h
 {
     esp_modem_dte_t *esp_dte = __containerof(dte, esp_modem_dte_t, parent);
     return esp_event_handler_unregister_with(esp_dte->event_loop_hdl, ESP_MODEM_EVENT, ESP_EVENT_ANY_ID, handler);
+}
+
+esp_event_loop_handle_t getLoopHandle(esp_modem_dte_t *dte)
+{
+    esp_modem_dte_t *esp_dte = __containerof(dte, esp_modem_dte_t, parent);
+    return esp_dte->event_loop_hdl;
 }
 
 esp_err_t esp_modem_start_ppp(modem_dte_t *dte)

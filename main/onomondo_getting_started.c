@@ -4,13 +4,14 @@
 
 #include <driver/adc.h>
 #include <string.h>
-
+#include "driver/rtc_io.h"
 #include "accelerometer.h"
 #include "esp32/clk.h"
 #include "esp_adc_cal.h"
 #include "esp_log.h"
 #include "esp_pm.h"
 #include "esp_sleep.h"
+#include "esp_event.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "nvs.h"
@@ -19,36 +20,51 @@
 #include "temperatureSensor.h"
 #include "touchPad.h"
 
-#define LED_LOGO 25
-#define LED_1 4
-#define LED_2 5
+#define LED_POWER 14
+#define LED_CLEAR 27
+#define LED_DNS 26
+#define LED_CONNECTOR 25
 
-enum EVENT_BITS
+#define BTN_0 32
+#define BTN_1 13
+#define BTN_2 4
+#define BTN_3 23
+
+#define BTN_POWER BTN_3
+#define BTN_CLEAR BTN_2
+#define BTN_DNS BTN_0
+#define BTN_CONNECTORS BTN_1
+#define ESP_INTR_FLAG_DEFAULT 0
+
+// ESP_EVENT_DECLARE_BASE(CELLULAR_EVENT);
+ESP_EVENT_DEFINE_BASE(USER_EVENTS);
+
+enum user_events
 {
-    TOUCH_EVENT = BIT0
+    CLEAR_FPLMN_EVENT,
+    POWER_DOWN_EVENT,
+    SEND_CONNECTORS_EVENT,
+    SEND_DNS_EVENT
 };
 
-enum NET_STATUS
+typedef struct
 {
-    DETACHED,
-    ATTACHED,
-    IP,
-    TRANSMITTING
-};
+    uint8_t network_available;
+    uint8_t ppp_mode;
+    uint8_t modem_initialized;
+} app_state_t;
 
-// Global var. for app state.
-// probably not suitable for atomic writes....
-volatile struct
-{
-    enum NET_STATUS net_status;
-    uint8_t error_state;
-} app_state;
+app_state_t app_state = {.network_available = 0, .ppp_mode = 0, .modem_initialized = 0};
 
-//global sync.
-static EventGroupHandle_t eventGroup = NULL;
+static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-//ADC characteristics -> used for calib and conversion.
+static void user_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+
+// ADC characteristics -> used for calib and conversion.
 esp_adc_cal_characteristics_t *adc_char;
+
+// gpio input handler
+static xQueueHandle gpio_evt_queue = NULL;
 
 //ESP log tag
 static const char *TAG = "main";
@@ -56,12 +72,20 @@ static const char *TAG = "main";
 //threads
 void led_task(void *param);
 void watchdog_task(void *param);
+static void gpio_filter_task(void *arg);
 
 //function prototypes
 void powerOff(uint32_t RTCSleepInS);
 void init_adc();
 float get_batt_voltage();
 void fault_state();
+void configure_io();
+
+static void IRAM_ATTR gpio_isr_handler(void *arg)
+{
+    uint32_t gpio_num = (uint32_t)arg;
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
 
 void app_main(void)
 {
@@ -86,29 +110,20 @@ void app_main(void)
     //handle low batt
     init_adc();
     float batt = get_batt_voltage();
-
+    configure_io();
     // if low bat is detected go to deep sleep.
     // device wont wake up before connected to a charger
     if (batt < 3.0 && batt > 2.5)
     {
-
         ESP_LOGI(TAG, "Low battery: %f", batt);
-        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // usb insert will reset and reenable device.
         esp_deep_sleep_start();
     }
-    gpio_set_level(LED_LOGO, 1);
 
     ESP_LOGI(TAG, "Batt: %f", batt);
 
-    // cpu clock config. w. dynamic freq. scaling.
-    // esp_pm_config_esp32_t conf = {.max_freq_mhz = 40, .min_freq_mhz = 40, .light_sleep_enable = 0};
-    // esp_pm_configure(&conf);
     int freq = esp_clk_cpu_freq() / 1000000;
     ESP_LOGI(TAG, "Cpu freq: %d MhZ", freq);
-
-    //init app status
-    app_state.net_status = DETACHED;
-    app_state.error_state = 0;
 
     // handle the output
     TaskHandle_t xHandle = NULL, xHandleWatchdog = NULL;
@@ -123,97 +138,216 @@ void app_main(void)
     tmp_read(&temp, &hum);
 
     ESP_LOGI(TAG, "Temperature: %f", temp);
-    eventGroup = xEventGroupCreate();
 
-    //init touchpad. Uses the eventgroup to signal main thread.
-    touchpad_init(&eventGroup, TOUCH_EVENT);
-
-    //initialize the cellular connection. Registers the PPPoS with on the network stack.
-    esp_err_t status = initCellular(SIM800, 0);
+    //initialize the cellular connection.
+    esp_err_t status = initCellular();
+    app_state.modem_initialized = 1;
 
     if (status != ESP_OK)
-        fault_state();
+        powerOff(1);
 
-    app_state.net_status = ATTACHED;
+    // loop should take inputs from user and from modem events.
+    esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL);
+    esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);
 
-    // while (1)
-    //     vTaskDelay(10);
+    return;
+}
 
-    //create a socket.
-    status = openSocket("8.8.8.8", 53);
-
-    if (status != ESP_OK)
-        fault_state();
-
-    app_state.net_status = IP;
-
-    while (1)
+static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    switch (event_id)
     {
-        EventBits_t uxBits;
-        const TickType_t xTicksToWait = 30000 / portTICK_PERIOD_MS;
+    case CELLULAR_PPP_STARTED:
+        app_state.ppp_mode = 1;
+        break;
+    case CELLULAR_ATTACHED:
+        app_state.network_available = 1;
+        break;
+    case CELLULAR_PPP_STOPPED:
+        app_state.ppp_mode = 0;
+        break;
+    case CELLULAR_STOPPED_SEARCHING:
+        app_state.network_available = 0;
+        break;
+    case CELLULAR_POWERED_DOWN:
+        ESP_LOGI(TAG, "Modem off");
+        powerOff(0);
+        break;
+    }
+}
 
-        uxBits = xEventGroupWaitBits(eventGroup, TOUCH_EVENT, pdTRUE, pdTRUE, xTicksToWait);
+static void user_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    //
+    //     CLEAR_FPLMN_EVENT,
+    //     POWER_DOWN_EVENT,
+    //     SEND_CONNECTORS_EVENT,
+    //     SEND_DNS_EVENT
+    switch (event_id)
+    {
+    case CLEAR_FPLMN_EVENT:
+        if (!app_state.ppp_mode)
+            clearFPLMMN();
 
-        if (!(uxBits & TOUCH_EVENT))
+        break;
+    case POWER_DOWN_EVENT:
+        ESP_LOGI(TAG, "Powering down");
+        forcePowerDown();
+        if (app_state.ppp_mode)
+            powerOff(0);
+        break;
+    case SEND_CONNECTORS_EVENT:
+        if (!app_state.network_available)
             break;
 
-        if (status == ESP_OK)
+        if (!app_state.ppp_mode)
         {
-            tmp_read(&temp, &hum);
-            float signal = getSignalQuality();
-            float battery = get_batt_voltage();
+            //start ppp and schedule event again.
+            requestPPP();
+            break;
+            // esp_event_post(USER_EVENTS, SEND_CONNECTORS_EVENT, NULL, 0, 1); //could schedule for later... This will spam the interface until ready..
+        }
+        openSocket("1.2.3.4", 4321);
 
-            char payload[100]; // = "Hello from onomondo...!";
+        sendData("TEST", strlen("TEST"), 0);
+        closeSocket();
+        break;
+    case SEND_DNS_EVENT:
+        ESP_LOGI(TAG, "Network Status:%d, PPP Status:%d", app_state.network_available, app_state.ppp_mode);
+        if (!app_state.network_available)
+            break;
 
-            sprintf(payload, "{\"battery\": %f,\"signal\": %f,\"temperature\": %f}", battery, signal, temp);
-            app_state.net_status = TRANSMITTING;
-            status = sendData(payload, strlen(payload), 0);
+        if (!app_state.ppp_mode)
+        {
+            //start ppp and schedule event again.
+            requestPPP();
+            //esp_event_post(USER_EVENTS, SEND_DNS_EVENT, NULL, 0, 1);
+            break;
+        }
+        //get random hostname
+        char host[30];
+        uint16_t timeMs = (uint16_t)esp_timer_get_time();
+        timeMs |= 0x000F;
+        sprintf(host, "%d.onomondo.com", timeMs);
+        dnsLookup(host);
+        break;
+    }
+}
 
-            app_state.net_status = IP;
-            if (status == ESP_OK)
+static void gpio_filter_task(void *arg)
+{
+    uint8_t btn[4] = {0, 0, 0, 0};
+    TickType_t delay = portMAX_DELAY;
+    uint32_t io_num = 0;
+    for (;;)
+    {
+
+        // vTaskDelay(pdMS_TO_TICKS(10));
+        // ESP_LOGI("GPIO", "%d,%d,%d,%d", gpio_get_level(BTN_0), gpio_get_level(BTN_1), gpio_get_level(BTN_2), gpio_get_level(BTN_3));
+
+        // continue;
+
+        delay = (btn[0] || btn[1] || btn[2] || btn[3]) ? pdMS_TO_TICKS(200) : portMAX_DELAY; //if button marked as active wait at most 50 ms for debounce.
+        if (xQueueReceive(gpio_evt_queue, &io_num, delay))
+        {
+            switch (io_num)
             {
-                ESP_LOGI("Transmit", "%s", payload);
-            }
-            else
-            {
-                ESP_LOGE(TAG, "Failed to transmit...");
-                app_state.error_state = 1;
-                vTaskDelay(pdMS_TO_TICKS(500));
+            case BTN_CLEAR:
+                btn[0] = 1;
+                break;
+            case BTN_POWER:
+                btn[1] = 1;
+                break;
+            case BTN_CONNECTORS:
+                btn[2] = 1;
+                break;
+            case BTN_DNS:
+                btn[3] = 1;
                 break;
             }
         }
+        else
+        {
+            // receive timeout. BTN must be stabilized.
+            uint32_t events[4] = {CLEAR_FPLMN_EVENT, POWER_DOWN_EVENT, SEND_CONNECTORS_EVENT, SEND_DNS_EVENT};
 
-        vTaskDelay(pdMS_TO_TICKS(500));
+            for (size_t i = 0; i < 4; i++)
+            {
+                if (btn[i])
+                {
+                    esp_event_post(USER_EVENTS, events[i], NULL, 0, 1);
+                    btn[i] = 0;
+                }
+            }
+        }
     }
+}
 
-    closeSocket();
+void configure_io()
+{
 
-    vTaskDelete(xHandle);
-    powerOff(0);
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    xTaskCreate(gpio_filter_task, "gpio_handler", 2048, NULL, 10, NULL);
+
+    gpio_config_t pinCfg;
+    pinCfg.mode = GPIO_MODE_OUTPUT;
+    pinCfg.pin_bit_mask = (1ULL << LED_POWER) | (1ULL << LED_CLEAR) | (1ULL << LED_DNS) | (1ULL << LED_CONNECTOR);
+    pinCfg.intr_type = GPIO_INTR_DISABLE;
+    pinCfg.pull_up_en = 0;
+    pinCfg.pull_down_en = 0;
+    gpio_config(&pinCfg);
+
+    pinCfg.mode = GPIO_MODE_INPUT;
+    pinCfg.pull_down_en = 1;
+    pinCfg.pin_bit_mask = (1ULL << BTN_DNS | 1ULL << BTN_CLEAR | 1ULL << BTN_POWER | 1ULL << BTN_CONNECTORS);
+    pinCfg.intr_type = GPIO_INTR_POSEDGE;
+
+    gpio_config(&pinCfg);
+
+    // install gpio isr service
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+
+    // hook ISR handlers
+    gpio_isr_handler_add(BTN_DNS, gpio_isr_handler, (void *)BTN_DNS);
+    gpio_isr_handler_add(BTN_CLEAR, gpio_isr_handler, (void *)BTN_CLEAR);
+    gpio_isr_handler_add(BTN_POWER, gpio_isr_handler, (void *)BTN_POWER);
+    gpio_isr_handler_add(BTN_CONNECTORS, gpio_isr_handler, (void *)BTN_CONNECTORS);
 }
 
 void powerOff(uint32_t RTCSleepInS)
 {
     // detachAndPowerDown();
-    forcePowerDown();
+    // forcePowerDown();
     // ++wake_count;
-    touch_deinit();
-    acc_resetInterrupt();
+    // acc_resetInterrupt();
 
     // esp_sleep_enable_timer_wakeup
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 
-    uint64_t mask = (uint64_t)1 << 34;
+    rtc_gpio_pulldown_en(BTN_0);
+    rtc_gpio_pulldown_en(BTN_1);
+    rtc_gpio_pulldown_en(BTN_2);
+
+    rtc_gpio_pullup_dis(BTN_0);
+    rtc_gpio_pullup_dis(BTN_1);
+    rtc_gpio_pullup_dis(BTN_2);
+
+    uint64_t mask = (1LL << BTN_0 | 1LL << BTN_1 | 1LL << BTN_2);
+
     esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_HIGH);
+
     // esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
     if (RTCSleepInS)
     {
         esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000); // 10 secs
     }
 
-    gpio_set_level(LED_LOGO, 0);
-    gpio_set_level(LED_1, 0);
-    gpio_set_level(LED_2, 0);
+    //gpio_set_level(LED_LOGO, 1);
+    gpio_set_level(LED_POWER, 0);
+    gpio_set_level(LED_CLEAR, 0);
+    gpio_set_level(LED_DNS, 0);
+    gpio_set_level(LED_CONNECTOR, 0);
 
     esp_deep_sleep_start();
 }
@@ -222,63 +356,37 @@ void led_task(void *param)
 {
     //figure out the state of the connection and/or error state.
 
-    gpio_config_t pinCfg;
-    pinCfg.mode = GPIO_MODE_OUTPUT;
-    pinCfg.pin_bit_mask = (1UL << LED_LOGO) | (1UL << LED_1) | (1UL << LED_2);
-    pinCfg.intr_type = GPIO_INTR_DISABLE;
-    pinCfg.pull_up_en = 0;
-    pinCfg.pull_down_en = 0;
-    gpio_config(&pinCfg);
     //gpio_set_level(LED_LOGO, 1);
-    gpio_set_level(LED_1, 0);
-    gpio_set_level(LED_2, 0);
+    gpio_set_level(LED_POWER, 1);
+    gpio_set_level(LED_CLEAR, 0);
+    gpio_set_level(LED_DNS, 0);
+    gpio_set_level(LED_CONNECTOR, 0);
 
-    uint8_t error, status;
-    bool status_led = 0, error_led = 0;
     uint32_t timing = 0;
-
+    uint8_t led_ppp = 0, led_clear = 0;
     while (1)
     {
-        error = app_state.error_state;
-        status = app_state.net_status;
-
-        //error led
-        if (error)
+        if (app_state.modem_initialized)
         {
-            if (timing % 8 == 0)
+            led_clear = 1;
+
+            //attached but no pdp context yet
+            if (app_state.network_available && !app_state.ppp_mode)
             {
-                error_led = error_led ? 0 : 1; //flip at fixed interval...
+                led_ppp = timing % 8 == 0 ? (led_ppp ? 0 : 1) : led_ppp;
+            }
+
+            //attached but and ppp context
+            if (app_state.network_available && app_state.ppp_mode)
+            {
+                led_ppp = 1;
+                led_clear = 0; //clear no longer available...
             }
         }
-        else
-        {
-            error_led = 0;
-        }
 
-        //status led.. We want quick flashes.
-
-        status_led = 0;
-
-        switch (status)
-        {
-        case DETACHED:
-            status_led = timing % 20 == 0 ? 1 : 0;
-            break;
-        case ATTACHED:
-            status_led = timing % 10 == 0 ? 1 : 0;
-            break;
-        case IP:
-            status_led = 1;
-            break;
-        case TRANSMITTING:
-            status_led = timing % 2 == 0 ? 1 : 0;
-            break;
-        default:
-            break;
-        }
-
-        gpio_set_level(LED_2, error_led);
-        gpio_set_level(LED_1, status_led);
+        gpio_set_level(LED_CLEAR, led_clear);
+        gpio_set_level(LED_DNS, led_ppp);
+        gpio_set_level(LED_CONNECTOR, led_ppp);
 
         timing++;
 
@@ -305,7 +413,7 @@ float get_batt_voltage()
 
 void fault_state()
 {
-    app_state.error_state = 1;
+
     vTaskDelay(pdMS_TO_TICKS(400));
     powerOff(0);
 }
@@ -315,7 +423,7 @@ void watchdog_task(void *param)
     // last resort watchdog. If device has been on for too long we reboot it... ->
     // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(7 * 1000 * 60)); // seven minutes
+    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10)); // seven minutes
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1); //sleep one second and reboot.

@@ -12,6 +12,9 @@
 #include "freertos/event_groups.h"
 #include "sim7600.h"
 #include "sim800.h"
+#include "lwip/dns.h"
+
+#define SEM_GIVE xSemaphoreGive(at_cmd_sem);
 
 static const char *TAG = "cellular";
 static EventGroupHandle_t event_group = NULL;
@@ -23,14 +26,44 @@ esp_netif_t *esp_netif = NULL;
 modem_dte_t *dte = NULL;
 modem_dce_t *dce = NULL;
 
+esp_timer_handle_t TIMER;
+
 float signalQuality = 0;
-
 int initialized = 0;
-
-// internal ref for the socket.
-// for ease of use this is kept private to the 'user'
-
 int socket_ = -1;
+
+SemaphoreHandle_t at_cmd_sem = NULL;
+
+ESP_EVENT_DEFINE_BASE(CELLULAR_EVENT);
+esp_err_t switchToPPP();
+uint8_t SEM_TAKE(uint32_t x)
+{
+    return at_cmd_sem != NULL ? xSemaphoreTake(at_cmd_sem, pdMS_TO_TICKS((x))) : false;
+}
+
+enum modemStates
+{
+    MODEM_OFF,
+    MODEM_NOT_SEARCHING,
+    MODEM_SEARCHING,
+    MODEM_ATTACHED,
+    MODEM_PPP,
+    MODEM_PPP_PAUSE
+};
+
+typedef struct
+{
+    uint8_t _reg_denied_count;
+    uint64_t _reg_update_count; // updated once a second!
+    uint32_t _failed_at_commands;
+} cellularAttachHelper_t;
+
+cellularAttachHelper_t reg_stats = {
+    ._reg_denied_count = 0,
+    ._reg_update_count = 0,
+    ._failed_at_commands = 0};
+
+volatile int modemState = MODEM_OFF;
 
 static esp_err_t default_handle(modem_dce_t *dce, const char *line)
 {
@@ -46,24 +79,165 @@ static esp_err_t default_handle(modem_dce_t *dce, const char *line)
     return err;
 }
 
+static void timer_callback(void *arg)
+{
+    if (SEM_TAKE(0))
+    {
+        if (modemState != MODEM_PPP && modemState != MODEM_OFF && dce)
+        {
+            if (dce->checkNetwork(dce) != ESP_OK)
+            {
+                reg_stats._failed_at_commands++;
+                if (reg_stats._failed_at_commands > 20)
+                {
+                    //modem is dead. Probably.
+                    esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
+                }
+            }
+        }
+    }
+    SEM_GIVE
+}
+
+esp_err_t clearFPLMMN()
+{
+    //halt other communications
+    if (SEM_TAKE(5000))
+    {
+        esp_modem_dce_clear_fplmn(dce);
+        SEM_GIVE
+    }
+    else
+    {
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
 static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     switch (event_id)
     {
     case ESP_MODEM_EVENT_PPP_START:
         ESP_LOGI(TAG, "Modem PPP Started");
+        modemState = MODEM_PPP;
+        // esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
         break;
     case ESP_MODEM_EVENT_PPP_STOP:
+        modemState = MODEM_PPP_PAUSE;
         ESP_LOGI(TAG, "Modem PPP Stopped");
+        esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STOPPED, NULL, 0, 1);
         xEventGroupSetBits(event_group, STOP_BIT);
         break;
     case ESP_MODEM_EVENT_UNKNOWN:
         break;
+    case ESP_MODEM_EVENT_NETWORK_STATUS:
+        if (event_data)
+        {
+            reg_status_t *n = (reg_status_t *)event_data;
+            ESP_LOGI(TAG, "Network registration update: CREG:%d, CEREG:%d, CGREG:%d", n->CREG, n->CEREG, n->CGREG);
+            // ESP_LOGI(TAG, "CREG:  %d", n->CREG);
+            // ESP_LOGI(TAG, "CGREG  %d", n->CGREG);
+            // ESP_LOGI(TAG, "CEREG  %d", n->CEREG);
+
+            if (!(n->CREG || n->CGREG || n->CEREG))
+            {
+                ESP_LOGI(TAG, "Modem stopped searching and is not attached.");
+                esp_event_post(CELLULAR_EVENT, CELLULAR_STOPPED_SEARCHING, NULL, 0, 1);
+            }
+
+            if ((n->CEREG == 5 || n->CGREG == 5) && modemState != MODEM_ATTACHED)
+            {
+                esp_event_post(CELLULAR_EVENT, CELLULAR_ATTACHED, NULL, 0, 1);
+                modemState = MODEM_ATTACHED;
+                reg_stats._reg_denied_count = 0;
+                reg_stats._reg_update_count = 0;
+                esp_timer_stop(TIMER);
+                esp_timer_start_periodic(TIMER, TIMER_PERIOD * 10);
+            }
+
+            if (!(n->CEREG == 5 || n->CGREG == 5))
+            {
+                modemState = MODEM_SEARCHING;
+            }
+
+            if (!(n->CREG == 3 || n->CGREG == 3 || n->CEREG == 3) && modemState != MODEM_ATTACHED)
+            {
+                reg_stats._reg_denied_count++;
+            }
+
+            if (reg_stats._reg_denied_count > 60) //20 seconds
+            {
+
+                if (SEM_TAKE(5000))
+                {
+                    esp_modem_dce_clear_fplmn(dce);
+                    SEM_GIVE
+                }
+
+                reg_stats._reg_denied_count = 0;
+            }
+            if (modemState == MODEM_SEARCHING || modemState == MODEM_NOT_SEARCHING)
+                reg_stats._reg_update_count++;
+
+            if (reg_stats._reg_update_count > 600) // 200 s
+            {
+                if (SEM_TAKE(5000))
+                {
+                    esp_modem_dce_clear_fplmn(dce);
+                    SEM_GIVE
+                }
+
+                esp_event_post(CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);
+            }
+        }
+        break;
+    case ESP_MODEM_EVENT_OPERATOR_SELECTION:
+        break;
+    case ESP_MODEM_EVENT_POWER_DOWN:
+        esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 1);
+        break;
+
     default:
         break;
     }
 }
 
+static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    switch (event_id)
+    {
+    case CELLULAR_STOPPED_SEARCHING:
+        if (dce)
+        {
+            if (SEM_TAKE(1000))
+            {
+                dce->attach(dce, 1);
+                SEM_GIVE
+            }
+        }
+        break;
+    case CELLULAR_PPP_STARTED:
+        modemState = MODEM_PPP;
+        break;
+    case CELLULAR_PPP_STOPPED:
+        modemState = MODEM_PPP_PAUSE;
+        break;
+
+    case CELLULAR_ATTACHED:;
+        uint32_t rssi = 0, ber = 0;
+        if (dce)
+            if (SEM_TAKE(1000))
+            {
+                dce->get_signal_quality(dce, &rssi, &ber);
+                SEM_GIVE
+            }
+        signalQuality = rssi;
+        break;
+    default:
+        break;
+    }
+}
 static void on_ppp_changed(void *arg, esp_event_base_t event_base,
                            int32_t event_id, void *event_data)
 {
@@ -98,12 +272,14 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "Name Server2: " IPSTR, IP2STR(&dns_info.ip.u_addr.ip4));
         ESP_LOGI(TAG, "~~~~~~~~~~~~~~");
         xEventGroupSetBits(event_group, CONNECT_BIT);
+        esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
 
         ESP_LOGI(TAG, "GOT ip event!!!");
     }
     else if (event_id == IP_EVENT_PPP_LOST_IP)
     {
         ESP_LOGI(TAG, "Modem Disconnect from PPP Server");
+        esp_event_post(CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1); //or
     }
     else if (event_id == IP_EVENT_GOT_IP6)
     {
@@ -114,12 +290,21 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
+esp_err_t initCellular()
 {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL));
+
+    at_cmd_sem = xSemaphoreCreateBinary();
+
+    if (!at_cmd_sem)
+    {
+        ESP_LOGE(TAG, "FAILED TO CREATE SEM");
+        return ESP_FAIL;
+    }
 
     event_group = xEventGroupCreate();
 
@@ -154,27 +339,31 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
     modem_netif_adapter = esp_modem_netif_setup(dte);
     esp_modem_netif_set_default_handlers(modem_netif_adapter, esp_netif);
 
-    switch (modem)
-    {
-    case SIM800:
-        dce = sim800_init(dte);
-        break;
-    case SIM7xxx:
-        dce = sim7600_init(dte);
-        break;
-    default:
-        killandclean();
-        return ESP_FAIL;
-        break;
-    }
+    dce = sim800_init(dte);
+    modemState = MODEM_SEARCHING;
 
     if (dce == NULL)
         return ESP_FAIL;
 
     assert(dce != NULL);
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
-    // ESP_ERROR_CHECK(dce->store_profile(dce));
 
+    // Create and start the event sources
+    esp_timer_create_args_t timer_args = {
+        .callback = &timer_callback,
+    };
+
+    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &TIMER));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(TIMER, TIMER_PERIOD));
+
+    xSemaphoreGive(at_cmd_sem);
+
+    return ESP_OK;
+
+    while (1)
+    {
+        vTaskDelay(10);
+    }
     for (size_t k = 0; k < 10; k++)
     {
         dce->checkNetwork(dce);
@@ -285,6 +474,14 @@ esp_err_t initCellular(enum supportedModems modem, bool fullModemInit)
 
 int getSignalQuality()
 {
+    if (modemState == MODEM_ATTACHED)
+    {
+        uint32_t rssi = 0, ber = 0;
+
+        dce->get_signal_quality(dce, &rssi, &ber);
+
+        signalQuality = rssi;
+    }
     return signalQuality;
 }
 
@@ -293,8 +490,22 @@ esp_err_t openSocket(char *host, int port)
 {
     if (socket_ != -1)
     {
-        return ESP_FAIL;
+        ESP_LOGI(TAG, "Using existing socket");
+        return ESP_OK; // already open?
     }
+
+    // if (modemState != MODEM_PPP)
+    // {
+    //     ESP_LOGI(TAG, "Switching to PPP");
+
+    //     if (switchToPPP() != ESP_OK)
+    //     {
+    //         ESP_LOGI(TAG, "Switch failed...?");
+
+    //         return ESP_FAIL;
+    //     }
+    // }
+    ESP_LOGI(TAG, "Something");
 
     struct sockaddr_in addr;
     addr.sin_addr.s_addr = inet_addr(host);
@@ -352,6 +563,35 @@ esp_err_t closeSocket(void)
     return ESP_OK;
 }
 
+void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
+{
+    // don't care for this example..
+}
+
+esp_err_t dnsLookup(const char *host)
+{
+    // if (modemState != MODEM_PPP)
+    // {
+    //     ESP_LOGI(TAG, "Switching to PPP");
+
+    //     if (switchToPPP() != ESP_OK)
+    //     {
+    //         ESP_LOGI(TAG, "Switch failed...?");
+
+    //         return ESP_FAIL;
+    //     }
+    // }
+    ip_addr_t addr;
+    IP_ADDR4(&addr, 0, 0, 0, 0);
+
+    if (dns_gethostbyname(host, &addr, dns_found_cb, NULL) == ERR_ARG)
+        return ESP_FAIL;
+
+    ESP_LOGI(TAG, "DNS OK");
+
+    return ESP_OK;
+}
+
 esp_err_t killandclean()
 {
 
@@ -362,38 +602,82 @@ esp_err_t killandclean()
 
 esp_err_t forcePowerDown()
 {
-    //if psm is supported, do a soft power down
-    if (dce->PSM)
-    {
-        ESP_LOGI("Main", "PSM ACTIVE");
-        if (dce && dte)
-        {
-            //initialize the stop sequence
-            ESP_LOGI(TAG, "Exit PPP");
-            esp_err_t alive = esp_modem_stop_ppp(dte);
+    // //if psm is supported, do a soft power down
+    // if (dce->PSM)
+    // {
+    //     ESP_LOGI("Main", "PSM ACTIVE");
+    //     if (dce && dte)
+    //     {
+    //         //initialize the stop sequence
+    //         ESP_LOGI(TAG, "Exit PPP");
+    //         esp_err_t alive = esp_modem_stop_ppp(dte);
 
-            // we just wait for the psm enter notification...
-            xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
+    //         // we just wait for the psm enter notification...
+    //         xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
 
-            int i = 0;
-            while (!dce->psm_enter_notified && i < 50)
-            {
-                ESP_LOGI("Main", "Waiting for PSM NOTIFIED");
-                vTaskDelay(pdMS_TO_TICKS(200));
-                ++i;
-            }
+    //         int i = 0;
+    //         while (!dce->psm_enter_notified && i < 50)
+    //         {
+    //             ESP_LOGI("Main", "Waiting for PSM NOTIFIED");
+    //             vTaskDelay(pdMS_TO_TICKS(200));
+    //             ++i;
+    //         }
 
-            if (dce->psm_enter_notified)
-            {
-                ESP_LOGI("Main", "PSM NOTIFIED");
+    //         if (dce->psm_enter_notified)
+    //         {
+    //             ESP_LOGI("Main", "PSM NOTIFIED");
 
-                return ESP_OK;
-            }
-        }
-    }
+    //             return ESP_OK;
+    //         }
+    //     }
+    // }
 
     //no psm or we never get the psm enter notification. Toggle pin to power down..
     //bit harder stop, but modem gets to detach as needed.
-    dce->power_down(dce);
+    esp_timer_stop(TIMER);
+    //effectively stops and wait for other processes to be done
+    SEM_TAKE(10000);
+
+    if (dce)
+    {
+        dce->power_down(dce);
+
+        if (modemState == MODEM_PPP)
+        {
+
+            esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
+        }
+    }
+    else
+        return ESP_FAIL;
     return ESP_OK;
+}
+
+esp_err_t requestPPP()
+{
+    if (modemState != MODEM_ATTACHED || modemState == MODEM_PPP)
+        return ESP_FAIL;
+
+    switchToPPP();
+    return ESP_OK;
+}
+
+esp_err_t switchToPPP()
+{
+    ESP_LOGI(TAG, "PPP requested.");
+    esp_timer_stop(TIMER);
+    SEM_TAKE(9999); //make sure no one else is pushing AT commands!
+    // not 'legal' from this point!
+
+    return esp_netif_attach(esp_netif, modem_netif_adapter);
+    /* Wait for IP address */
+    // EventBits_t event = xEventGroupWaitBits(event_group, CONNECT_BIT, pdTRUE, pdTRUE, pdMS_TO_TICKS(30000));
+
+    // if (!event)
+    // {
+    //     ESP_LOGI(TAG, "Failed to get IP");
+    //     return ESP_FAIL;
+    // }
+
+    // return ESP_OK;
 }

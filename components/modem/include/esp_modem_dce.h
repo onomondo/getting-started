@@ -100,6 +100,13 @@ extern "C"
  * @brief DCE(Data Communication Equipment)
  *
  */
+    typedef struct
+    {
+        uint8_t CREG;
+        uint8_t CGREG;
+        uint8_t CEREG;
+    } reg_status_t;
+
     struct modem_dce
     {
         char imei[MODEM_IMEI_LENGTH + 1];     /*!< IMEI number */
@@ -113,6 +120,8 @@ extern "C"
         bool psm_enter_notified;
         bool power_down_notified;
         struct networks_t networks;
+        reg_status_t network_status;
+        uint8_t operatorMode;
         const char *prompt;                                                               /*!< Modem prompt string */
         modem_state_t state;                                                              /*!< Modem working state */
         modem_mode_t mode;                                                                /*!< Working mode */

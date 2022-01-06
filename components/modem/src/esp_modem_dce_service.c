@@ -301,6 +301,11 @@ esp_err_t esp_modem_dce_handle_cops(modem_dce_t *dce, const char *line)
         {
             p[++i] = strtok_r(NULL, ",", &str_ptr);
         }
+        if (i > 2)
+        {
+            dce->operatorMode = (uint8_t)strtol(p[1], NULL, 0);
+        }
+
         if (i >= 3)
         {
             int len = snprintf(dce->oper, MODEM_MAX_OPERATOR_LENGTH, "%s", p[2]);
@@ -334,40 +339,91 @@ esp_err_t esp_modem_dce_handle_creg(modem_dce_t *dce, const char *line)
     {
         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
     }
-    else if (!strncmp(line, "+CREG", strlen("+CREG")))
+    else if (strstr(line, "REG"))
     {
-        /* there might be some random spaces in operator's name, we can not use sscanf to parse the result */
-        /* strtok will break the string, we need to create a copy */
-        size_t len = strlen(line);
-        char *line_copy = malloc(len + 1);
-        strcpy(line_copy, line);
-        /* +CREG: <mode>[, <stat>[....] */
-        char *str_ptr = NULL;
-        char *p[5];
-        uint8_t i = 0;
-        /* strtok will broke string by replacing delimiter with '\0' */
-        p[i] = strtok_r(line_copy, ",", &str_ptr);
-        while (p[i])
+        char *start = strstr(line, "+");
+        int matches = 0, status = 0, mode = 0;
+
+        if (!start)
+            return ESP_FAIL;
+
+        if (strstr(line, "CREG:"))
         {
-            p[++i] = strtok_r(NULL, ",", &str_ptr);
+            if ((matches = sscanf(start, "+CREG: %d,%d", &mode, &status) == 2))
+                dce->network_status.CREG = status;
+        }
+        else if (strstr(line, "CEREG:"))
+        {
+            if ((matches = sscanf(start, "+CEREG: %d,%d", &mode, &status) == 2))
+                dce->network_status.CEREG = status;
+        }
+        else if (strstr(line, "CGREG:"))
+        {
+            if ((matches = sscanf(start, "+CGREG: %d,%d", &mode, &status) == 2))
+                dce->network_status.CGREG = status;
         }
 
-        if (i >= 2)
-        {
-            sscanf(p[1], "%u", &dce->attached);
-            //ESP_LOGI("CREG: ", "Attachment: %u", dce->attached);
-            err = ESP_OK;
-        }
-        free(line_copy);
+        return ESP_FAIL;
     }
+
     return err;
 }
+
+// esp_err_t esp_modem_dce_handle_creg(modem_dce_t *dce, const char *line)
+// {
+//     esp_err_t err = ESP_FAIL;
+
+//     // ESP_LOGI("AT CREG:", "%s", line);
+
+//     if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
+//     {
+//         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
+//     }
+//     else if (strstr(line, MODEM_RESULT_CODE_ERROR))
+//     {
+//         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
+//     }
+//     else if (!strncmp(line, "+CREG", strlen("+CREG")))
+//     {
+
+//         size_t len = strlen(line);
+//         char *line_copy = malloc(len + 1);
+//         strcpy(line_copy, line);
+//         /* +CREG: <mode>[, <stat>[....] */
+//         char *str_ptr = NULL;
+//         char *p[5];
+//         uint8_t i = 0;
+//         /* strtok will broke string by replacing delimiter with '\0' */
+//         p[i] = strtok_r(line_copy, ",", &str_ptr);
+//         while (p[i])
+//         {
+//             p[++i] = strtok_r(NULL, ",", &str_ptr);
+//         }
+
+//         if (i >= 2)
+//         {
+//             sscanf(p[1], "%u", &dce->attached);
+//             dce->network_status.CREG = dce->attached;
+//             //ESP_LOGI("CREG: ", "Attachment: %u", dce->attached);
+//             err = ESP_OK;
+//         }
+//         free(line_copy);
+//     }
+//     return err;
+// }
 
 esp_err_t esp_modem_dce_get_check_attach(modem_dce_t *dce)
 {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = esp_modem_dce_handle_creg;
     DCE_CHECK(dte->send_cmd(dte, "AT+CREG?\r", MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK, "send command failed", err);
+
+    dce->handle_line = esp_modem_dce_handle_creg;
+    DCE_CHECK(dte->send_cmd(dte, "AT+CEREG?\r", MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK, "send command failed", err);
+
+    dce->handle_line = esp_modem_dce_handle_creg;
+    DCE_CHECK(dte->send_cmd(dte, "AT+CGREG?\r", MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK, "send command failed", err);
+
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "CREG failed", err);
     ESP_LOGD(DCE_TAG, "Check attach ok");
     return ESP_OK;
@@ -428,13 +484,20 @@ esp_err_t esp_modem_dce_echo(modem_dce_t *dce, bool on)
         ESP_LOGD(DCE_TAG, "disable echo ok");
     }
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CURCCFG=\"SYS\",0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dte->send_cmd(dte, "AT+CURCCFG=\"SYS\",1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CURCCFG=\"SIMCARD\",0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dte->send_cmd(dte, "AT+CURCCFG=\"SIMCARD\",1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
     dce->handle_line = esp_modem_dce_handle_response_default;
     dte->send_cmd(dte, "AT+CURCCFG=\"SMS\",0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CURCCFG=\"NETWORK\",0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dte->send_cmd(dte, "AT+CURCCFG=\"NETWORK\",1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    dte->send_cmd(dte, "AT+CREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    dte->send_cmd(dte, "AT+CGREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    dte->send_cmd(dte, "AT+CEREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
 
     return ESP_OK;
 err:
@@ -577,7 +640,7 @@ esp_err_t esp_modem_dce_clear_fplmn(modem_dce_t *dce)
 {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = esp_modem_dce_handle_response_default;
-    DCE_CHECK(dte->send_cmd(dte, "at+crsm=214,28539,0,0,12,\"FFFFFFFFFFFFFFFFFFFFFFFF\"\r", 4000) == ESP_OK, "send command failed", err);
+    DCE_CHECK(dte->send_cmd(dte, "at+crsm=214,28539,0,0,12,\"FFFFFFFFFFFFFFFFFFFFFFFF\"\r", 8000) == ESP_OK, "send command failed", err);
     DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "Clearing the fplmn list failed....", err);
     ESP_LOGD(DCE_TAG, "hang up ok");
     return ESP_OK;

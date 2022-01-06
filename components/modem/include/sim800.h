@@ -14,13 +14,14 @@
 #pragma once
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include "esp_modem.h"
 #include "esp_modem_dce_service.h"
 
-//power on module!
+    //power on module!
 
 #ifdef GEN_1
 
@@ -30,21 +31,27 @@ extern "C" {
 #define PULSE_ON 0
 #define PULSE_OFF 1
 
-#else
+#elif GEN_2
 
 #define PWR_PIN 27
 #define PULSE_ON 1
 #define PULSE_OFF 0
 
+#else
+
+#define PWR_PIN 33
+#define PULSE_ON 1
+#define PULSE_OFF 0
+
 #endif
 
-/**
+    /**
  * @brief Create and initialize SIM800 object
  *
  * @param dte Modem DTE object
  * @return modem_dce_t* Modem DCE object
  */
-modem_dce_t *sim800_init(modem_dte_t *dte);
+    modem_dce_t *sim800_init(modem_dte_t *dte);
 
 #ifdef __cplusplus
 }
