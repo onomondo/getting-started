@@ -52,9 +52,10 @@ typedef struct
     uint8_t network_available;
     uint8_t ppp_mode;
     uint8_t modem_initialized;
+    uint8_t power_pressed;
 } app_state_t;
 
-app_state_t app_state = {.network_available = 0, .ppp_mode = 0, .modem_initialized = 0};
+app_state_t app_state = {.network_available = 0, .ppp_mode = 0, .modem_initialized = 0, .power_pressed = 0};
 
 static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
@@ -113,9 +114,10 @@ void app_main(void)
     configure_io();
     // if low bat is detected go to deep sleep.
     // device wont wake up before connected to a charger
-    if (batt < 3.0 && batt > 2.5)
+    if (batt < 3.0 && batt > 1)
     {
         ESP_LOGI(TAG, "Low battery: %f", batt);
+        esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL); // usb insert will reset and reenable device.
         esp_deep_sleep_start();
     }
@@ -147,7 +149,8 @@ void app_main(void)
         powerOff(1);
 
     // loop should take inputs from user and from modem events.
-    esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL);
+    cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
+    // esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL);
     esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);
 
     return;
@@ -169,9 +172,18 @@ static void cellular_event_handler(void *event_handler_arg, esp_event_base_t eve
     case CELLULAR_STOPPED_SEARCHING:
         app_state.network_available = 0;
         break;
+    case CELLULAR_SEARCHING:
+        app_state.network_available = 0;
+        break;
     case CELLULAR_POWERED_DOWN:
         ESP_LOGI(TAG, "Modem off");
         powerOff(0);
+        break;
+    case CELLULAR_NOT_AVAILABLE:
+        //bad luck. Power off...
+        forcePowerDown();
+        if (app_state.ppp_mode)
+            powerOff(0);
         break;
     }
 }
@@ -192,9 +204,10 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
         break;
     case POWER_DOWN_EVENT:
         ESP_LOGI(TAG, "Powering down");
+        app_state.power_pressed = 1;
         forcePowerDown();
-        if (app_state.ppp_mode)
-            powerOff(0);
+        // if (app_state.ppp_mode)
+        //     powerOff(0);
         break;
     case SEND_CONNECTORS_EVENT:
         if (!app_state.network_available)
@@ -204,16 +217,28 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
         {
             //start ppp and schedule event again.
             requestPPP();
+            vTaskDelay(pdMS_TO_TICKS(200));
+
+            // hacky reschedule so users don't have to press multiple times.
+            // ppp status is posted in default event loop, so we can't block this too long.
+            esp_event_post(USER_EVENTS, SEND_CONNECTORS_EVENT, NULL, 0, 1);
+
             break;
-            // esp_event_post(USER_EVENTS, SEND_CONNECTORS_EVENT, NULL, 0, 1); //could schedule for later... This will spam the interface until ready..
         }
         openSocket("1.2.3.4", 4321);
 
-        sendData("TEST", strlen("TEST"), 0);
-        closeSocket();
+        char payload[100]; // = "Hello from onomondo...!";
+        float temp = 0, hum = 0;
+        float battery = get_batt_voltage();
+        int signal = getSignalQuality();
+
+        tmp_read(&temp, &hum);
+        sprintf(payload, "{\"battery\": %f,\"signal\": %d,\"temperature\": %f}", battery, signal, temp);
+        sendData(payload, strlen(payload), 0);
+        ESP_LOGI(TAG, "Transmit: %s", payload);
+        // closeSocket();
         break;
     case SEND_DNS_EVENT:
-        ESP_LOGI(TAG, "Network Status:%d, PPP Status:%d", app_state.network_available, app_state.ppp_mode);
         if (!app_state.network_available)
             break;
 
@@ -221,7 +246,12 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
         {
             //start ppp and schedule event again.
             requestPPP();
-            //esp_event_post(USER_EVENTS, SEND_DNS_EVENT, NULL, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(200));
+
+            // hacky reschedule so users don't have to press multiple times.
+            // ppp status is posted in default event loop, so we can't block this too long.
+            esp_event_post(USER_EVENTS, SEND_DNS_EVENT, NULL, 0, 1);
+
             break;
         }
         //get random hostname
@@ -363,7 +393,7 @@ void led_task(void *param)
     gpio_set_level(LED_CONNECTOR, 0);
 
     uint32_t timing = 0;
-    uint8_t led_ppp = 0, led_clear = 0;
+    uint8_t led_ppp = 0, led_clear = 0, led_power = 1;
     while (1)
     {
         if (app_state.modem_initialized)
@@ -382,11 +412,19 @@ void led_task(void *param)
                 led_ppp = 1;
                 led_clear = 0; //clear no longer available...
             }
+
+            if (app_state.power_pressed)
+            {
+                led_power = timing % 16 == 0 ? (led_power ? 0 : 1) : led_power;
+                led_clear = 0;
+                led_ppp = 0;
+            }
         }
 
         gpio_set_level(LED_CLEAR, led_clear);
         gpio_set_level(LED_DNS, led_ppp);
         gpio_set_level(LED_CONNECTOR, led_ppp);
+        gpio_set_level(LED_POWER, led_power);
 
         timing++;
 
@@ -397,16 +435,16 @@ void led_task(void *param)
 void init_adc()
 {
     //ADC1_CH4
-    adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_4);
+    adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_0);
     adc_char = calloc(1, sizeof(esp_adc_cal_characteristics_t));
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_BIT_12, 1, adc_char);
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC1_CHANNEL_1, ADC_ATTEN_11db);
 }
 
 float get_batt_voltage()
 {
-    int raw = adc1_get_raw(ADC1_CHANNEL_4);
+    int raw = adc1_get_raw(ADC1_CHANNEL_0);
 
     return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0; // x2 due to voltage division..
 }

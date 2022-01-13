@@ -250,6 +250,9 @@ static esp_err_t sim800_set_eDRX(modem_dce_t *dce, uint8_t enable)
         dte->send_cmd(dte, "AT+CEDRXS=1,4,\"0010\"\r", 500);
     else
         dte->send_cmd(dte, "AT+CEDRXS=0\r", 500);
+
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    dte->send_cmd(dte, "AT+CPSI?\r", 500);
     return ESP_OK;
 }
 
@@ -360,8 +363,6 @@ esp_err_t esp_modem_enable_PSM(modem_dce_t *dce, uint8_t enable)
     //be sure that we are attached..!
 
     esp_err_t err = sim800_set_PSM_param(dce, enable);
-
-    err = sim800_check_PSM_support(dce);
 
     return err;
 }
@@ -477,7 +478,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
 
         vTaskDelay(pdMS_TO_TICKS(3000));
 
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 20; i++)
         {
             if (esp_modem_dce_power_test(&(esp_modem_dce->parent)) == ESP_OK)
                 break;

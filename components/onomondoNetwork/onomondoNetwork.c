@@ -28,6 +28,9 @@ modem_dce_t *dce = NULL;
 
 esp_timer_handle_t TIMER;
 
+// cellular events can't use the default loop as it can be blocking.
+esp_event_loop_handle_t cellular_event_loop_hdl; /*!< Event loop handle */
+
 float signalQuality = 0;
 int initialized = 0;
 int socket_ = -1;
@@ -48,20 +51,21 @@ enum modemStates
     MODEM_SEARCHING,
     MODEM_ATTACHED,
     MODEM_PPP,
-    MODEM_PPP_PAUSE
+    MODEM_PPP_PAUSE,
+    MODEM_PPP_REQUESTED
 };
 
 typedef struct
 {
     uint8_t _reg_denied_count;
     uint64_t _reg_update_count; // updated once a second!
-    uint32_t _failed_at_commands;
+    uint32_t _failed_at_commands_count;
 } cellularAttachHelper_t;
 
 cellularAttachHelper_t reg_stats = {
     ._reg_denied_count = 0,
     ._reg_update_count = 0,
-    ._failed_at_commands = 0};
+    ._failed_at_commands_count = 0};
 
 volatile int modemState = MODEM_OFF;
 
@@ -87,16 +91,16 @@ static void timer_callback(void *arg)
         {
             if (dce->checkNetwork(dce) != ESP_OK)
             {
-                reg_stats._failed_at_commands++;
-                if (reg_stats._failed_at_commands > 20)
+                reg_stats._failed_at_commands_count++;
+                if (reg_stats._failed_at_commands_count > 20)
                 {
                     //modem is dead. Probably.
-                    esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
+                    esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
                 }
             }
         }
+        SEM_GIVE
     }
-    SEM_GIVE
 }
 
 esp_err_t clearFPLMMN()
@@ -121,12 +125,12 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
     case ESP_MODEM_EVENT_PPP_START:
         ESP_LOGI(TAG, "Modem PPP Started");
         modemState = MODEM_PPP;
-        // esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
+        //    esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
         break;
     case ESP_MODEM_EVENT_PPP_STOP:
         modemState = MODEM_PPP_PAUSE;
         ESP_LOGI(TAG, "Modem PPP Stopped");
-        esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STOPPED, NULL, 0, 1);
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);
         xEventGroupSetBits(event_group, STOP_BIT);
         break;
     case ESP_MODEM_EVENT_UNKNOWN:
@@ -143,12 +147,12 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
             if (!(n->CREG || n->CGREG || n->CEREG))
             {
                 ESP_LOGI(TAG, "Modem stopped searching and is not attached.");
-                esp_event_post(CELLULAR_EVENT, CELLULAR_STOPPED_SEARCHING, NULL, 0, 1);
+                esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_STOPPED_SEARCHING, NULL, 0, 1);
             }
 
             if ((n->CEREG == 5 || n->CGREG == 5) && modemState != MODEM_ATTACHED)
             {
-                esp_event_post(CELLULAR_EVENT, CELLULAR_ATTACHED, NULL, 0, 1);
+                esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_ATTACHED, NULL, 0, 1);
                 modemState = MODEM_ATTACHED;
                 reg_stats._reg_denied_count = 0;
                 reg_stats._reg_update_count = 0;
@@ -158,19 +162,25 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
 
             if (!(n->CEREG == 5 || n->CGREG == 5))
             {
+                if (modemState == MODEM_ATTACHED)
+                {
+                    //signal we lost connection
+                    esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_SEARCHING, NULL, 0, 1);
+                }
                 modemState = MODEM_SEARCHING;
             }
 
-            if (!(n->CREG == 3 || n->CGREG == 3 || n->CEREG == 3) && modemState != MODEM_ATTACHED)
+            if ((n->CREG == 3 || n->CGREG == 3 || n->CEREG == 3) && modemState != MODEM_ATTACHED)
             {
                 reg_stats._reg_denied_count++;
             }
 
-            if (reg_stats._reg_denied_count > 60) //20 seconds
+            if (reg_stats._reg_denied_count > 100)
             {
 
                 if (SEM_TAKE(5000))
                 {
+                    vTaskDelay(100);
                     esp_modem_dce_clear_fplmn(dce);
                     SEM_GIVE
                 }
@@ -180,22 +190,25 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
             if (modemState == MODEM_SEARCHING || modemState == MODEM_NOT_SEARCHING)
                 reg_stats._reg_update_count++;
 
-            if (reg_stats._reg_update_count > 600) // 200 s
+            if (reg_stats._reg_update_count > 500) //
             {
                 if (SEM_TAKE(5000))
                 {
+                    vTaskDelay(100);
+
                     esp_modem_dce_clear_fplmn(dce);
+
                     SEM_GIVE
                 }
 
-                esp_event_post(CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);
+                esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);
             }
         }
         break;
     case ESP_MODEM_EVENT_OPERATOR_SELECTION:
         break;
     case ESP_MODEM_EVENT_POWER_DOWN:
-        esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 1);
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 1);
         break;
 
     default:
@@ -230,14 +243,20 @@ static void cellular_event_handler(void *event_handler_arg, esp_event_base_t eve
             if (SEM_TAKE(1000))
             {
                 dce->get_signal_quality(dce, &rssi, &ber);
+                dce->enable_edrx(dce, 1);
                 SEM_GIVE
             }
         signalQuality = rssi;
         break;
+    case MODEM_EVENT_PPP_DISCONNECT:
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);
+        break;
+
     default:
         break;
     }
 }
+
 static void on_ppp_changed(void *arg, esp_event_base_t event_base,
                            int32_t event_id, void *event_data)
 {
@@ -272,14 +291,14 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "Name Server2: " IPSTR, IP2STR(&dns_info.ip.u_addr.ip4));
         ESP_LOGI(TAG, "~~~~~~~~~~~~~~");
         xEventGroupSetBits(event_group, CONNECT_BIT);
-        esp_event_post(CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_PPP_STARTED, NULL, 0, 1);
 
         ESP_LOGI(TAG, "GOT ip event!!!");
     }
     else if (event_id == IP_EVENT_PPP_LOST_IP)
     {
         ESP_LOGI(TAG, "Modem Disconnect from PPP Server");
-        esp_event_post(CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1); //or
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1); //or
     }
     else if (event_id == IP_EVENT_GOT_IP6)
     {
@@ -296,7 +315,18 @@ esp_err_t initCellular()
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(NETIF_PPP_STATUS, ESP_EVENT_ANY_ID, &on_ppp_changed, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL));
+
+    esp_event_loop_args_t loop_args = {
+        .queue_size = 5,
+        .task_name = "loop_task", // task will be created
+        .task_priority = uxTaskPriorityGet(NULL),
+        .task_stack_size = 2048,
+        .task_core_id = tskNO_AFFINITY};
+
+    ESP_ERROR_CHECK(esp_event_loop_create(&loop_args, &cellular_event_loop_hdl));
+    // ESP_ERROR_CHECK(esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL));
+
+    cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
 
     at_cmd_sem = xSemaphoreCreateBinary();
 
@@ -345,6 +375,8 @@ esp_err_t initCellular()
     if (dce == NULL)
         return ESP_FAIL;
 
+    // dce->attach(dce, 0);
+
     assert(dce != NULL);
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
 
@@ -356,120 +388,14 @@ esp_err_t initCellular()
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &TIMER));
     ESP_ERROR_CHECK(esp_timer_start_periodic(TIMER, TIMER_PERIOD));
 
-    xSemaphoreGive(at_cmd_sem);
+    SEM_GIVE return ESP_OK;
+}
 
-    return ESP_OK;
-
-    while (1)
-    {
-        vTaskDelay(10);
-    }
-    for (size_t k = 0; k < 10; k++)
-    {
-        dce->checkNetwork(dce);
-        if (dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK || (dce->attached == ATTACH_NOT_SEARCHING && k > 4))
-            break;
-
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }
-
-    // dce->scanNetworks(dce);
-
-    // //print available networks...
-    // for (int k = 0; k < dce->networks.numberOfNetworks; k++)
-    // {
-    //     struct network_t *net = &dce->networks.availableNetworks[k];
-
-    //     switch (net->accessTechnology)
-    //     {
-    //     case 0: //GSM
-    //         ESP_LOGI("Network: ", "Type: GSM, Name: %s, mccmnc: %s", net->name, net->mccmnc);
-    //         break;
-    //     case 7: //LTE
-    //         ESP_LOGI("Network: ", "Type: LTE-M, Name: %s, mccmnc: %s", net->name, net->mccmnc);
-    //         break;
-
-    //     default:
-    //         break;
-    //     }
-    // }
-
-    if (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
-    { //at+cops = 4/0
-        dce->attach(dce, 1);
-    }
-
-    ESP_LOGI(TAG, "Module: %s", dce->name);
-    dce->checkNetwork(dce);
-
-    //wait for modem to attach.
-    int tries = 0;
-    int errorCount = 0;
-    while (!(dce->attached == ATTACH_ROAMING || dce->attached == ATTACH_HOME_NETWORK))
-    {
-        if (dce->checkNetwork(dce) != ESP_OK)
-            errorCount++;
-
-        if (errorCount > 10)
-            return ESP_FAIL;
-
-        switch (dce->attached)
-        {
-        case ATTACH_NOT_SEARCHING:
-            dce->attach(dce, 1);
-            errorCount++;
-            // return ESP_FAIL;
-            break;
-        case ATTACH_SEARCHING:
-            //keep going
-            break;
-        case ATTACH_ROAMING:
-            //success
-            break;
-        case ATTACH_DENIED:
-            //we might get this in case of network whitelist. The device can connect to other networks though!
-            dce->attach(dce, 1); // is it needed though?
-            break;
-        default:
-            break;
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500));
-        ++tries;
-        if (tries == 120)
-            //clear the FPLMN.
-            esp_modem_dce_clear_fplmn(dce);
-
-        if (tries > 260)
-            return ESP_FAIL;
-    }
-
-    /* Print Module ID, Operator, IMEI, IMSI */
-    ESP_LOGI(TAG, "Operator: %s", dce->oper);
-    ESP_LOGI(TAG, "IMEI: %s", dce->imei);
-    ESP_LOGI(TAG, "IMSI: %s", dce->imsi);
-    /* Get signal quality */
-    uint32_t rssi = 0, ber = 0;
-    ESP_ERROR_CHECK(dce->get_signal_quality(dce, &rssi, &ber));
-
-    if (rssi > 90)
-        dce->get_signal_quality(dce, &rssi, &ber);
-
-    ESP_LOGI(TAG, "rssi: %d, ber: %d", rssi, ber);
-    signalQuality = rssi;
-
-    // setup psm and edrx
-    // In this case PSM does not add any value, as the modem is quite slow to boot.
-    // Furthermore, we can tear down the connection quicker by toggling power with the powerpin.
-    dce->enable_psm(dce, 0);
-    dce->enable_edrx(dce, 1);
-
-    esp_netif_attach(esp_netif, modem_netif_adapter);
-    /* Wait for IP address */
-    xEventGroupWaitBits(event_group, CONNECT_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
-
-    initialized = 1;
-    return ESP_OK;
+esp_err_t cellular_set_event_handler(esp_event_handler_t handler, int32_t event_id, void *handler_args)
+{
+    if (!cellular_event_loop_hdl)
+        return ESP_FAIL;
+    return esp_event_handler_register_with(cellular_event_loop_hdl, CELLULAR_EVENT, event_id, handler, handler_args);
 }
 
 int getSignalQuality()
@@ -491,21 +417,8 @@ esp_err_t openSocket(char *host, int port)
     if (socket_ != -1)
     {
         ESP_LOGI(TAG, "Using existing socket");
-        return ESP_OK; // already open?
+        return ESP_OK;
     }
-
-    // if (modemState != MODEM_PPP)
-    // {
-    //     ESP_LOGI(TAG, "Switching to PPP");
-
-    //     if (switchToPPP() != ESP_OK)
-    //     {
-    //         ESP_LOGI(TAG, "Switch failed...?");
-
-    //         return ESP_FAIL;
-    //     }
-    // }
-    ESP_LOGI(TAG, "Something");
 
     struct sockaddr_in addr;
     addr.sin_addr.s_addr = inet_addr(host);
@@ -549,6 +462,7 @@ esp_err_t sendData(char *data, int len, int timeout)
     if (err < 0)
     {
         ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
+        closeSocket();
         return ESP_FAIL;
     }
     return ESP_OK;
@@ -566,28 +480,17 @@ esp_err_t closeSocket(void)
 void dns_found_cb(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
 {
     // don't care for this example..
+    ESP_LOGI(TAG, "DNS OK");
 }
 
 esp_err_t dnsLookup(const char *host)
 {
-    // if (modemState != MODEM_PPP)
-    // {
-    //     ESP_LOGI(TAG, "Switching to PPP");
 
-    //     if (switchToPPP() != ESP_OK)
-    //     {
-    //         ESP_LOGI(TAG, "Switch failed...?");
-
-    //         return ESP_FAIL;
-    //     }
-    // }
     ip_addr_t addr;
     IP_ADDR4(&addr, 0, 0, 0, 0);
 
     if (dns_gethostbyname(host, &addr, dns_found_cb, NULL) == ERR_ARG)
         return ESP_FAIL;
-
-    ESP_LOGI(TAG, "DNS OK");
 
     return ESP_OK;
 }
@@ -602,50 +505,21 @@ esp_err_t killandclean()
 
 esp_err_t forcePowerDown()
 {
-    // //if psm is supported, do a soft power down
-    // if (dce->PSM)
-    // {
-    //     ESP_LOGI("Main", "PSM ACTIVE");
-    //     if (dce && dte)
-    //     {
-    //         //initialize the stop sequence
-    //         ESP_LOGI(TAG, "Exit PPP");
-    //         esp_err_t alive = esp_modem_stop_ppp(dte);
-
-    //         // we just wait for the psm enter notification...
-    //         xEventGroupWaitBits(event_group, STOP_BIT, pdTRUE, pdTRUE, portMAX_DELAY);
-
-    //         int i = 0;
-    //         while (!dce->psm_enter_notified && i < 50)
-    //         {
-    //             ESP_LOGI("Main", "Waiting for PSM NOTIFIED");
-    //             vTaskDelay(pdMS_TO_TICKS(200));
-    //             ++i;
-    //         }
-
-    //         if (dce->psm_enter_notified)
-    //         {
-    //             ESP_LOGI("Main", "PSM NOTIFIED");
-
-    //             return ESP_OK;
-    //         }
-    //     }
-    // }
-
-    //no psm or we never get the psm enter notification. Toggle pin to power down..
-    //bit harder stop, but modem gets to detach as needed.
-    esp_timer_stop(TIMER);
-    //effectively stops and wait for other processes to be done
-    SEM_TAKE(10000);
-
     if (dce)
     {
-        dce->power_down(dce);
+        esp_timer_stop(TIMER);
+
+        //effectively stops and wait for other processes to be done
+        if (modemState != MODEM_PPP)
+            SEM_TAKE(10000);
+
+        if (!dce->power_down_notified)
+            dce->power_down(dce);
 
         if (modemState == MODEM_PPP)
         {
 
-            esp_event_post(CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
+            esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
         }
     }
     else
@@ -655,11 +529,13 @@ esp_err_t forcePowerDown()
 
 esp_err_t requestPPP()
 {
-    if (modemState != MODEM_ATTACHED || modemState == MODEM_PPP)
+    if (modemState != MODEM_ATTACHED)
         return ESP_FAIL;
 
-    switchToPPP();
-    return ESP_OK;
+    if (modemState == MODEM_PPP_REQUESTED || modemState == MODEM_PPP_MODE)
+        return ESP_OK;
+
+    return switchToPPP();
 }
 
 esp_err_t switchToPPP()
@@ -668,16 +544,7 @@ esp_err_t switchToPPP()
     esp_timer_stop(TIMER);
     SEM_TAKE(9999); //make sure no one else is pushing AT commands!
     // not 'legal' from this point!
+    modemState = MODEM_PPP_REQUESTED;
 
     return esp_netif_attach(esp_netif, modem_netif_adapter);
-    /* Wait for IP address */
-    // EventBits_t event = xEventGroupWaitBits(event_group, CONNECT_BIT, pdTRUE, pdTRUE, pdMS_TO_TICKS(30000));
-
-    // if (!event)
-    // {
-    //     ESP_LOGI(TAG, "Failed to get IP");
-    //     return ESP_FAIL;
-    // }
-
-    // return ESP_OK;
 }
