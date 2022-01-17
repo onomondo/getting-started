@@ -168,7 +168,7 @@ void app_main(void)
 
     do
     {
-
+        uint8_t postErr = 0;
         uint32_t random = esp_random();
 
         sprintf(url, "http://%7u.watchdog.icanhaziot.com:6000", random);
@@ -191,9 +191,15 @@ void app_main(void)
         {
             ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
             app_state.error_state = 1;
+            postErr++;
         }
 
-        powerOff(25);
+        esp_http_client_cleanup(client);
+
+        if (!postErr)
+            vTaskDelay(pdMS_TO_TICKS(20000));
+
+        powerOff(1);
 
         vTaskDelay(pdMS_TO_TICKS(30000));
     } while (app_state.error_state == 0);
