@@ -37,5 +37,7 @@
   "idf.flashType": "UART",
   "editor.defaultFormatter": "ms-vscode.cpptools",
   "idf.adapterTargetName": "esp32",
-  "C_Cpp.intelliSenseEngineFallback": "Enabled"
+  "C_Cpp.intelliSenseEngineFallback": "Enabled",
+  "editor.formatOnSave": true,
+  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}"
 }

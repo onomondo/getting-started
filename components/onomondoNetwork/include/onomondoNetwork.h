@@ -41,10 +41,9 @@ enum CELLULAR_EVENTS
 
 esp_err_t initCellular();
 
-// handle internal
 esp_err_t openSocket(char *host, int port);
 
-esp_err_t cellular_set_event_handler( esp_event_handler_t handler, int32_t event_id, void *handler_args);
+esp_err_t cellular_set_event_handler(esp_event_handler_t handler, int32_t event_id, void *handler_args);
 
 esp_err_t clearFPLMMN();
 

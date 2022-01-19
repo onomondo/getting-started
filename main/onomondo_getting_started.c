@@ -67,21 +67,29 @@ esp_adc_cal_characteristics_t *adc_char;
 // gpio input handler
 static xQueueHandle gpio_evt_queue = NULL;
 
-//ESP log tag
+// ESP log tag
 static const char *TAG = "main";
 
-//threads
+// threads
+// LED_TASK: User feedback
+// WATCHDOG_TASK: In case nothing happens for a loong time.
 void led_task(void *param);
 void watchdog_task(void *param);
 static void gpio_filter_task(void *arg);
 
-//function prototypes
+// function prototypes //
+
+// handles sleep
 void powerOff(uint32_t RTCSleepInS);
+
+// ADC for battery management. //TODO movo to sensors
 void init_adc();
 float get_batt_voltage();
-void fault_state();
+
+// io configuration
 void configure_io();
 
+// GPIO interrupt handler
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     uint32_t gpio_num = (uint32_t)arg;
@@ -90,8 +98,6 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
 
 void app_main(void)
 {
-    // esp_deep_sleep_start();
-
     // Initialize NVS. This will be needed for OTA portion...
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -105,16 +111,14 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
-    // char *tmp = "a";
-    // testline(tmp);
-
     //handle low batt
     init_adc();
     float batt = get_batt_voltage();
     configure_io();
+
     // if low bat is detected go to deep sleep.
     // device wont wake up before connected to a charger
-    if (batt < 3.0 && batt > 1)
+    if (batt < 3.1 && batt > 1)
     {
         ESP_LOGI(TAG, "Low battery: %f", batt);
         esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_OFF);
@@ -124,33 +128,29 @@ void app_main(void)
 
     ESP_LOGI(TAG, "Batt: %f", batt);
 
-    int freq = esp_clk_cpu_freq() / 1000000;
-    ESP_LOGI(TAG, "Cpu freq: %d MhZ", freq);
-
-    // handle the output
+    // threads
+    // LED_TASK: User feedback
+    // WATCHDOG_TASK: In case nothing happens for a loong time.
     TaskHandle_t xHandle = NULL, xHandleWatchdog = NULL;
     xTaskCreate(led_task, "LED_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandle);
     xTaskCreate(watchdog_task, "WATCHDOG_TASK", 4000, NULL, tskIDLE_PRIORITY, &xHandleWatchdog);
 
-    //init sensors
+    // init sensors
     acc_init();
     tmp_init();
 
-    float temp, hum;
-    tmp_read(&temp, &hum);
-
-    ESP_LOGI(TAG, "Temperature: %f", temp);
-
-    //initialize the cellular connection.
+    // initialize the cellular connection.
     esp_err_t status = initCellular();
     app_state.modem_initialized = 1;
 
+    // critical error.
     if (status != ESP_OK)
         powerOff(1);
 
-    // loop should take inputs from user and from modem events.
+    // handles cellular events.
     cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
-    // esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL);
+
+    // handles button presses.
     esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);
 
     return;
@@ -182,15 +182,13 @@ static void cellular_event_handler(void *event_handler_arg, esp_event_base_t eve
     case CELLULAR_NOT_AVAILABLE:
         //bad luck. Power off...
         forcePowerDown();
-        if (app_state.ppp_mode)
-            powerOff(0);
         break;
     }
 }
 
 static void user_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    //
+
     //     CLEAR_FPLMN_EVENT,
     //     POWER_DOWN_EVENT,
     //     SEND_CONNECTORS_EVENT,
@@ -200,15 +198,15 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
     case CLEAR_FPLMN_EVENT:
         if (!app_state.ppp_mode)
             clearFPLMMN();
-
         break;
+
     case POWER_DOWN_EVENT:
         ESP_LOGI(TAG, "Powering down");
+        closeSocket(); // Just in case. Safe to call w. no socket created
         app_state.power_pressed = 1;
         forcePowerDown();
-        // if (app_state.ppp_mode)
-        //     powerOff(0);
         break;
+
     case SEND_CONNECTORS_EVENT:
         if (!app_state.network_available)
             break;
@@ -236,7 +234,6 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
         sprintf(payload, "{\"battery\": %f,\"signal\": %d,\"temperature\": %f}", battery, signal, temp);
         sendData(payload, strlen(payload), 0);
         ESP_LOGI(TAG, "Transmit: %s", payload);
-        // closeSocket();
         break;
     case SEND_DNS_EVENT:
         if (!app_state.network_available)
@@ -254,11 +251,13 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
 
             break;
         }
+
         //get random hostname
         char host[30];
         uint16_t timeMs = (uint16_t)esp_timer_get_time();
         timeMs |= 0x000F;
         sprintf(host, "%d.onomondo.com", timeMs);
+
         dnsLookup(host);
         break;
     }
@@ -269,15 +268,11 @@ static void gpio_filter_task(void *arg)
     uint8_t btn[4] = {0, 0, 0, 0};
     TickType_t delay = portMAX_DELAY;
     uint32_t io_num = 0;
+    uint32_t events[4] = {CLEAR_FPLMN_EVENT, POWER_DOWN_EVENT, SEND_CONNECTORS_EVENT, SEND_DNS_EVENT};
+
     for (;;)
     {
-
-        // vTaskDelay(pdMS_TO_TICKS(10));
-        // ESP_LOGI("GPIO", "%d,%d,%d,%d", gpio_get_level(BTN_0), gpio_get_level(BTN_1), gpio_get_level(BTN_2), gpio_get_level(BTN_3));
-
-        // continue;
-
-        delay = (btn[0] || btn[1] || btn[2] || btn[3]) ? pdMS_TO_TICKS(200) : portMAX_DELAY; //if button marked as active wait at most 50 ms for debounce.
+        delay = (btn[0] || btn[1] || btn[2] || btn[3]) ? pdMS_TO_TICKS(200) : portMAX_DELAY; //if button marked as active wait at most 200 ms for debounce.
         if (xQueueReceive(gpio_evt_queue, &io_num, delay))
         {
             switch (io_num)
@@ -299,8 +294,6 @@ static void gpio_filter_task(void *arg)
         else
         {
             // receive timeout. BTN must be stabilized.
-            uint32_t events[4] = {CLEAR_FPLMN_EVENT, POWER_DOWN_EVENT, SEND_CONNECTORS_EVENT, SEND_DNS_EVENT};
-
             for (size_t i = 0; i < 4; i++)
             {
                 if (btn[i])
@@ -315,7 +308,6 @@ static void gpio_filter_task(void *arg)
 
 void configure_io()
 {
-
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     xTaskCreate(gpio_filter_task, "gpio_handler", 2048, NULL, 10, NULL);
 
@@ -346,15 +338,11 @@ void configure_io()
 
 void powerOff(uint32_t RTCSleepInS)
 {
-    // detachAndPowerDown();
-    // forcePowerDown();
-    // ++wake_count;
-    // acc_resetInterrupt();
 
-    // esp_sleep_enable_timer_wakeup
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 
+    // rev. 1 missing pull down resistors...
     rtc_gpio_pulldown_en(BTN_0);
     rtc_gpio_pulldown_en(BTN_1);
     rtc_gpio_pulldown_en(BTN_2);
@@ -373,7 +361,7 @@ void powerOff(uint32_t RTCSleepInS)
         esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000); // 10 secs
     }
 
-    //gpio_set_level(LED_LOGO, 1);
+    // power off leds
     gpio_set_level(LED_POWER, 0);
     gpio_set_level(LED_CLEAR, 0);
     gpio_set_level(LED_DNS, 0);
@@ -434,7 +422,6 @@ void led_task(void *param)
 
 void init_adc()
 {
-    //ADC1_CH4
     adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_0);
     adc_char = calloc(1, sizeof(esp_adc_cal_characteristics_t));
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_BIT_12, 1, adc_char);
@@ -449,19 +436,11 @@ float get_batt_voltage()
     return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0; // x2 due to voltage division..
 }
 
-void fault_state()
-{
-
-    vTaskDelay(pdMS_TO_TICKS(400));
-    powerOff(0);
-}
-
 void watchdog_task(void *param)
 {
     // last resort watchdog. If device has been on for too long we reboot it... ->
-    // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10)); // seven minutes
+    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10)); // 10 minutes
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1); //sleep one second and reboot.
