@@ -29,10 +29,8 @@ static const char *DCE_TAG = "sim800";
  *
  */
 #define DCE_CHECK(a, str, goto_tag, ...)                                              \
-    do                                                                                \
-    {                                                                                 \
-        if (!(a))                                                                     \
-        {                                                                             \
+    do {                                                                              \
+        if (!(a)) {                                                                   \
             ESP_LOGE(DCE_TAG, "%s(%d): " str, __FUNCTION__, __LINE__, ##__VA_ARGS__); \
             goto goto_tag;                                                            \
         }                                                                             \
@@ -46,38 +44,33 @@ static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce);
 esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line);
 static esp_err_t sim800_check_PSM_support(modem_dce_t *dce);
 
-static esp_err_t sim800_handle_power_down(modem_dce_t *dce, const char *line)
-{
+static esp_err_t sim800_handle_power_down(modem_dce_t *dce, const char *line) {
     // gpio_set_level(PWR_PIN, 0);
     // vTaskDelay(pdMS_TO_TICKS(200));
     // gpio_set_level(PWR_PIN, 1);
     // return ESP_OK;
 
     esp_err_t err = ESP_FAIL;
-    if (strstr(line, MODEM_RESULT_CODE_POWERDOWN))
-    {
+    if (strstr(line, MODEM_RESULT_CODE_POWERDOWN)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
     }
     return err;
 }
 
-static esp_err_t sim800_handle_cpin(modem_dce_t *dce, const char *line)
-{
+static esp_err_t sim800_handle_cpin(modem_dce_t *dce, const char *line) {
     // gpio_set_level(PWR_PIN, 0);
     // vTaskDelay(pdMS_TO_TICKS(200));
     // gpio_set_level(PWR_PIN, 1);
     // return ESP_OK;
 
     esp_err_t err = ESP_FAIL;
-    if (strstr(line, "READY"))
-    {
+    if (strstr(line, "READY")) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
     }
     return err;
 }
 
-static esp_err_t sim800_check_sim(modem_dce_t *dce)
-{
+static esp_err_t sim800_check_sim(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     return ESP_OK;
     // dce->handle_line = esp_modem_dce_handle_response_default;
@@ -99,8 +92,7 @@ err:
  *      - ESP_OK on success
  *      - ESP_FAIL on error
  */
-static esp_err_t sim800_power_down(modem_dce_t *dce)
-{
+static esp_err_t sim800_power_down(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
 
     // dce->handle_line = esp_modem_dce_handle_response_default;
@@ -136,72 +128,63 @@ err:
  *      - ESP_OK on success
  *      - ESP_FAIL on error
  */
-static esp_err_t sim800_set_working_mode(modem_dce_t *dce, modem_mode_t mode)
-{
+static esp_err_t sim800_set_working_mode(modem_dce_t *dce, modem_mode_t mode) {
     modem_dte_t *dte = dce->dte;
 
     ESP_LOGI(DCE_TAG, "Working mode is changed! :D ");
 
-    switch (mode)
-    {
-    case MODEM_COMMAND_MODE:
-        dce->handle_line = esp_modem_dce_handle_exit_data_mode;
-        vTaskDelay(pdMS_TO_TICKS(1300)); // spec: 1s delay for the modem to recognize the escape sequence
-        if (dte->send_cmd(dte, "+++", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) != ESP_OK)
-        {
-            //return ESP_OK;
-            // "+++" Could fail if we are already in the command mode.
-            // in that case we ignore the timeout and re-sync the modem
-            ESP_LOGI(DCE_TAG, "Sending \"+++\" command failed");
-            dce->handle_line = esp_modem_dce_handle_response_default;
-            esp_err_t sync = ESP_FAIL;
-            for (uint8_t i = 0; i < 15; i++)
-            {
-                if (dte->send_cmd(dte, "AT\r", MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK)
-                {
-                    sync = ESP_OK;
-                    break;
+    switch (mode) {
+        case MODEM_COMMAND_MODE:
+            dce->handle_line = esp_modem_dce_handle_exit_data_mode;
+            vTaskDelay(pdMS_TO_TICKS(1300));  // spec: 1s delay for the modem to recognize the escape sequence
+            if (dte->send_cmd(dte, "+++", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) != ESP_OK) {
+                //return ESP_OK;
+                // "+++" Could fail if we are already in the command mode.
+                // in that case we ignore the timeout and re-sync the modem
+                ESP_LOGI(DCE_TAG, "Sending \"+++\" command failed");
+                dce->handle_line = esp_modem_dce_handle_response_default;
+                esp_err_t sync = ESP_FAIL;
+                for (uint8_t i = 0; i < 15; i++) {
+                    if (dte->send_cmd(dte, "AT\r", MODEM_COMMAND_TIMEOUT_DEFAULT) == ESP_OK) {
+                        sync = ESP_OK;
+                        break;
+                    }
                 }
-            }
-            if (sync != ESP_OK)
-                goto err;
+                if (sync != ESP_OK)
+                    goto err;
 
-            DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "sync failed", err);
-        }
-        else
-        {
-            DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "enter command mode failed", err);
-        }
-        ESP_LOGD(DCE_TAG, "enter command mode ok");
-        dce->mode = MODEM_COMMAND_MODE;
-        break;
-    case MODEM_PPP_MODE:
-        dce->handle_line = esp_modem_dce_handle_atd_ppp;
-        DCE_CHECK(dte->send_cmd(dte, "ATD*99#\r", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) == ESP_OK, "send command failed", err);
-        if (dce->state != MODEM_STATE_SUCCESS)
-        {
-            // Initiate PPP mode could fail, if we've already "dialed" the data call before.
-            // in that case we retry with "ATO" to just resume the data mode
-            ESP_LOGD(DCE_TAG, "enter ppp mode failed, retry with ATO");
+                DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "sync failed", err);
+            } else {
+                DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "enter command mode failed", err);
+            }
+            ESP_LOGD(DCE_TAG, "enter command mode ok");
+            dce->mode = MODEM_COMMAND_MODE;
+            break;
+        case MODEM_PPP_MODE:
             dce->handle_line = esp_modem_dce_handle_atd_ppp;
-            DCE_CHECK(dte->send_cmd(dte, "ATO\r", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) == ESP_OK, "send command failed", err);
-            DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "enter ppp mode failed", err);
-        }
-        ESP_LOGD(DCE_TAG, "enter ppp mode ok");
-        dce->mode = MODEM_PPP_MODE;
-        break;
-    default:
-        ESP_LOGW(DCE_TAG, "unsupported working mode: %d", mode);
-        goto err;
-        break;
+            DCE_CHECK(dte->send_cmd(dte, "ATD*99#\r", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) == ESP_OK, "send command failed", err);
+            if (dce->state != MODEM_STATE_SUCCESS) {
+                // Initiate PPP mode could fail, if we've already "dialed" the data call before.
+                // in that case we retry with "ATO" to just resume the data mode
+                ESP_LOGD(DCE_TAG, "enter ppp mode failed, retry with ATO");
+                dce->handle_line = esp_modem_dce_handle_atd_ppp;
+                DCE_CHECK(dte->send_cmd(dte, "ATO\r", MODEM_COMMAND_TIMEOUT_MODE_CHANGE) == ESP_OK, "send command failed", err);
+                DCE_CHECK(dce->state == MODEM_STATE_SUCCESS, "enter ppp mode failed", err);
+            }
+            ESP_LOGD(DCE_TAG, "enter ppp mode ok");
+            dce->mode = MODEM_PPP_MODE;
+            break;
+        default:
+            ESP_LOGW(DCE_TAG, "unsupported working mode: %d", mode);
+            goto err;
+            break;
     }
     return ESP_OK;
 err:
     return ESP_FAIL;
 }
 
-static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce)
-{
+static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
 
     dce->define_pdp_context(dce, 1, "IP", "onomondo");
@@ -214,12 +197,13 @@ static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce)
     dte->send_cmd(dte, "AT+CNMP=51\r", 500);
     dce->handle_line = esp_modem_dce_handle_response_default;
     dte->send_cmd(dte, "AT+CMNB=1\r", 500);
+    dce->handle_line = esp_modem_dce_handle_response_default;
+    dte->send_cmd(dte, "AT+CPIN?\r", 500);
 
     return ESP_OK;
 }
 
-static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable)
-{ //we'll always allow PSM
+static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable) {  //we'll always allow PSM
     modem_dte_t *dte = dce->dte;
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
@@ -228,7 +212,7 @@ static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable)
 
     dce->handle_line = esp_modem_dce_handle_response_default;
 
-    if (enable) //only set if not allready activated
+    if (enable)  //only set if not allready activated
         dte->send_cmd(dte, "AT+CPSMS=1,,,\"00000001\",\"00000010\" \r", 500);
     else if (!enable)
         dte->send_cmd(dte, "AT+CPSMS=0\r", 500);
@@ -239,8 +223,7 @@ static esp_err_t sim800_set_PSM_param(modem_dce_t *dce, uint8_t enable)
     return ESP_OK;
 }
 
-static esp_err_t sim800_set_eDRX(modem_dce_t *dce, uint8_t enable)
-{
+static esp_err_t sim800_set_eDRX(modem_dce_t *dce, uint8_t enable) {
     modem_dte_t *dte = dce->dte;
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
@@ -256,8 +239,7 @@ static esp_err_t sim800_set_eDRX(modem_dce_t *dce, uint8_t enable)
     return ESP_OK;
 }
 
-static esp_err_t sim800_check_PSM_support(modem_dce_t *dce)
-{
+static esp_err_t sim800_check_PSM_support(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     //sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
@@ -267,27 +249,19 @@ static esp_err_t sim800_check_PSM_support(modem_dce_t *dce)
     return ESP_OK;
 }
 
-esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line)
-{
+esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line) {
     esp_err_t err = ESP_FAIL;
     esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
-    if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
-    {
+    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
-    }
-    else if (strstr(line, MODEM_RESULT_CODE_ERROR))
-    {
+    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
-    }
-    else if (strncmp(line, "+CEDRXRDP: 0", strlen("+CEDRXRDP: 0")) == 0)
-    {
+    } else if (strncmp(line, "+CEDRXRDP: 0", strlen("+CEDRXRDP: 0")) == 0) {
         // not supported.
         dce->eDRX = false;
 
         ESP_LOGI("eDRX CHECK", "Not supported");
-    }
-    else
-    {
+    } else {
         // it is supported. We dont care about the timing currently, but it could be parsed at this point.
         dce->eDRX = true;
         ESP_LOGI("eDRX CHECK", "Supported");
@@ -296,20 +270,14 @@ esp_err_t sim800_handle_eDRX_check(modem_dce_t *dce, const char *line)
     return err;
 }
 
-esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
-{
+esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line) {
     esp_err_t err = ESP_FAIL;
     esp_modem_dce_t *esp_dce = __containerof(dce, esp_modem_dce_t, parent);
-    if (strstr(line, MODEM_RESULT_CODE_SUCCESS))
-    {
+    if (strstr(line, MODEM_RESULT_CODE_SUCCESS)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_SUCCESS);
-    }
-    else if (strstr(line, MODEM_RESULT_CODE_ERROR))
-    {
+    } else if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
         err = esp_modem_process_command_done(dce, MODEM_STATE_FAIL);
-    }
-    else
-    {
+    } else {
         //parse response.
         uint32_t mode, requested_active, requested_tau, network_active, Network_T3412_EXT_value, Network_T3412_value;
         char buf[20];
@@ -321,13 +289,10 @@ esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
         if (matched < 5)
             return ESP_FAIL;
 
-        if (network_active != 0)
-        {
+        if (network_active != 0) {
             ESP_LOGI("PSM Supported:", "true");
             dce->PSM = 1;
-        }
-        else
-        {
+        } else {
             ESP_LOGI("PSM Supported:", "false");
             dce->PSM = 0;
         }
@@ -335,8 +300,7 @@ esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line)
     return ESP_OK;
 }
 
-static esp_err_t sim800_check_eDRX_support(modem_dce_t *dce)
-{
+static esp_err_t sim800_check_eDRX_support(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = sim800_handle_eDRX_check;
     dte->send_cmd(dte, "AT+CEDRXRDP\r", 500);
@@ -344,8 +308,7 @@ static esp_err_t sim800_check_eDRX_support(modem_dce_t *dce)
     return ESP_OK;
 }
 
-esp_err_t esp_modem_enable_eDRX(modem_dce_t *dce, uint8_t enable)
-{
+esp_err_t esp_modem_enable_eDRX(modem_dce_t *dce, uint8_t enable) {
     //be sure that we are attached..!
 
     esp_err_t err = sim800_set_eDRX(dce, enable);
@@ -358,8 +321,7 @@ esp_err_t esp_modem_enable_eDRX(modem_dce_t *dce, uint8_t enable)
         return ESP_FAIL;
 }
 
-esp_err_t esp_modem_enable_PSM(modem_dce_t *dce, uint8_t enable)
-{
+esp_err_t esp_modem_enable_PSM(modem_dce_t *dce, uint8_t enable) {
     //be sure that we are attached..!
 
     esp_err_t err = sim800_set_PSM_param(dce, enable);
@@ -375,19 +337,16 @@ esp_err_t esp_modem_enable_PSM(modem_dce_t *dce, uint8_t enable)
  *      - ESP_OK on success
  *      - ESP_FAIL on fail
  */
-static esp_err_t sim800_deinit(modem_dce_t *dce)
-{
+static esp_err_t sim800_deinit(modem_dce_t *dce) {
     esp_modem_dce_t *esp_modem_dce = __containerof(dce, esp_modem_dce_t, parent);
-    if (dce->dte)
-    {
+    if (dce->dte) {
         dce->dte->dce = NULL;
     }
     free(esp_modem_dce);
     return ESP_OK;
 }
 
-modem_dce_t *sim800_init(modem_dte_t *dte)
-{
+modem_dce_t *sim800_init(modem_dte_t *dte) {
     DCE_CHECK(dte, "DCE should bind with a DTE", err);
     /* malloc memory for esp_modem_dce object */
     esp_modem_dce_t *esp_modem_dce = calloc(1, sizeof(esp_modem_dce_t));
@@ -430,9 +389,9 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
     gpio_config_t pinCfg;
     pinCfg.mode = GPIO_MODE_OUTPUT;
 #ifdef GEN_1
-    pinCfg.pin_bit_mask = (1UL << PWR_PIN) | (1UL << RST_PIN) | (1UL << PWR_ON_PIN); //power key // reset key // power on // on board led
+    pinCfg.pin_bit_mask = (1UL << PWR_PIN) | (1UL << RST_PIN) | (1UL << PWR_ON_PIN);  //power key // reset key // power on // on board led
 #else
-    pinCfg.pin_bit_mask = ((uint64_t)1 << PWR_PIN); //power key // reset key // power on // on board led
+    pinCfg.pin_bit_mask = ((uint64_t)1 << PWR_PIN);  //power key // reset key // power on // on board led
 #endif
 
     pinCfg.intr_type = GPIO_INTR_DISABLE;
@@ -448,8 +407,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
     //do some power testing (e.g. can we sync.)
 
     esp_err_t modemPower = ESP_FAIL;
-    for (uint8_t i = 0; i < 2; i++)
-    {
+    for (uint8_t i = 0; i < 2; i++) {
         modemPower = esp_modem_dce_power_test(&(esp_modem_dce->parent));
 
         if (modemPower == ESP_OK)
@@ -463,8 +421,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
     else
         ESP_LOGI(DCE_TAG, "Modem power not detected....");
 
-    if (modemPower != ESP_OK)
-    {
+    if (modemPower != ESP_OK) {
         //power on the modem...
 
         ESP_LOGI(DCE_TAG, "Power on modem");
@@ -478,8 +435,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte)
 
         vTaskDelay(pdMS_TO_TICKS(3000));
 
-        for (int i = 0; i < 20; i++)
-        {
+        for (int i = 0; i < 20; i++) {
             if (esp_modem_dce_power_test(&(esp_modem_dce->parent)) == ESP_OK)
                 break;
         }
