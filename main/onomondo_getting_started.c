@@ -8,33 +8,31 @@
 #include "accelerometer.h"
 #include "esp32/clk.h"
 #include "esp_adc_cal.h"
+#include "esp_http_client.h"
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "esp_pm.h"
+#include "esp_random.h"
 #include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "lwip/inet.h"
+#include "lwip/sockets.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include "onomondoNetwork.h"
+#include "ping/ping_sock.h"
 #include "temperatureSensor.h"
 #include "touchPad.h"
-#include "ping/ping_sock.h"
-#include "lwip/inet.h"
-#include "lwip/sockets.h"
-#include "esp_netif.h"
-#include "esp_http_client.h"
-#include "esp_random.h"
 #define LED_LOGO 25
 #define LED_1 4
 #define LED_2 5
 
-enum EVENT_BITS
-{
+enum EVENT_BITS {
     TOUCH_EVENT = BIT0
 };
 
-enum NET_STATUS
-{
+enum NET_STATUS {
     DETACHED,
     ATTACHED,
     IP,
@@ -73,14 +71,12 @@ static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args);
 static void test_on_ping_end(esp_ping_handle_t hdl, void *args);
 void initialize_ping();
 
-void app_main(void)
-{
+void app_main(void) {
     // esp_deep_sleep_start();
 
     // Initialize NVS. This will be needed for OTA portion...
     esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
         // partition table. This size mismatch may cause NVS initialization to fail.
         // 2.NVS partition contains data in new format and cannot be recognized by this version of code.
@@ -102,9 +98,7 @@ void app_main(void)
 
     // if low bat is detected go to deep sleep.
     // device wont wake up before connected to a charger
-    if (batt < 3.0 && batt > 2.5)
-    {
-
+    if (batt < 3.0 && batt > 2.5) {
         ESP_LOGI(TAG, "Low battery: %f", batt);
         esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
         esp_deep_sleep_start();
@@ -166,8 +160,7 @@ void app_main(void)
     const char *post_data = calloc(2000, sizeof(uint8_t));
     char url[150];
 
-    do
-    {
+    do {
         uint8_t postErr = 0;
         uint32_t random = esp_random();
 
@@ -180,15 +173,12 @@ void app_main(void)
         // esp_http_client_set_header(client, "Content-Type", "application/json");
         esp_http_client_set_post_field(client, post_data, 2000);
         err = esp_http_client_perform(client);
-        if (err == ESP_OK)
-        {
+        if (err == ESP_OK) {
             ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
                      esp_http_client_get_status_code(client),
                      esp_http_client_get_content_length(client));
             app_state.error_state = 0;
-        }
-        else
-        {
+        } else {
             ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
             app_state.error_state = 1;
             postErr++;
@@ -259,8 +249,7 @@ void app_main(void)
     vTaskDelete(xHandle);
 }
 
-void powerOff(uint32_t RTCSleepInS)
-{
+void powerOff(uint32_t RTCSleepInS) {
     // detachAndPowerDown();
     forcePowerDown();
     // ++wake_count;
@@ -273,9 +262,8 @@ void powerOff(uint32_t RTCSleepInS)
     uint64_t mask = (uint64_t)1 << 34;
     esp_sleep_enable_ext1_wakeup(mask, ESP_EXT1_WAKEUP_ANY_HIGH);
     // esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_FAST_MEM, ESP_PD_OPTION_OFF);
-    if (RTCSleepInS)
-    {
-        esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000); // 10 secs
+    if (RTCSleepInS) {
+        esp_sleep_enable_timer_wakeup((uint64_t)RTCSleepInS * (uint64_t)1000 * (uint64_t)1000);  // 10 secs
     }
 
     gpio_set_level(LED_LOGO, 0);
@@ -285,8 +273,7 @@ void powerOff(uint32_t RTCSleepInS)
     esp_deep_sleep_start();
 }
 
-void led_task(void *param)
-{
+void led_task(void *param) {
     //figure out the state of the connection and/or error state.
 
     gpio_config_t pinCfg;
@@ -304,21 +291,16 @@ void led_task(void *param)
     bool status_led = 0, error_led = 0;
     uint32_t timing = 0;
 
-    while (1)
-    {
+    while (1) {
         error = app_state.error_state;
         status = app_state.net_status;
 
         //error led
-        if (error)
-        {
-            if (timing % 2 == 0)
-            {
-                error_led = error_led ? 0 : 1; //flip at fixed interval...
+        if (error) {
+            if (timing % 2 == 0) {
+                error_led = error_led ? 0 : 1;  //flip at fixed interval...
             }
-        }
-        else
-        {
+        } else {
             error_led = 0;
         }
 
@@ -326,22 +308,21 @@ void led_task(void *param)
 
         status_led = 0;
 
-        switch (status)
-        {
-        case DETACHED:
-            status_led = timing % 20 == 0 ? 1 : 0;
-            break;
-        case ATTACHED:
-            status_led = timing % 10 == 0 ? 1 : 0;
-            break;
-        case IP:
-            status_led = 1;
-            break;
-        case TRANSMITTING:
-            status_led = timing % 2 == 0 ? 1 : 0;
-            break;
-        default:
-            break;
+        switch (status) {
+            case DETACHED:
+                status_led = timing % 20 == 0 ? 1 : 0;
+                break;
+            case ATTACHED:
+                status_led = timing % 10 == 0 ? 1 : 0;
+                break;
+            case IP:
+                status_led = 1;
+                break;
+            case TRANSMITTING:
+                status_led = timing % 2 == 0 ? 1 : 0;
+                break;
+            default:
+                break;
         }
 
         gpio_set_level(LED_2, error_led);
@@ -353,8 +334,7 @@ void led_task(void *param)
     }
 }
 
-void init_adc()
-{
+void init_adc() {
     //ADC1_CH4
     adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_4);
     adc_char = calloc(1, sizeof(esp_adc_cal_characteristics_t));
@@ -363,41 +343,36 @@ void init_adc()
     adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_11db);
 }
 
-float get_batt_voltage()
-{
+float get_batt_voltage() {
     int raw = adc1_get_raw(ADC1_CHANNEL_4);
 
-    return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0; // x2 due to voltage division..
+    return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0;  // x2 due to voltage division..
 }
 
-void fault_state()
-{
+void fault_state() {
     app_state.error_state = 1;
     vTaskDelay(pdMS_TO_TICKS(400));
     powerOff(1);
 }
 
-void watchdog_task(void *param)
-{
+void watchdog_task(void *param) {
     // last resort watchdog. If device has been on for too long we reboot it... ->
     // this should hopefully never happen, but if the socket API stalls this should 'handle' it.
     ESP_LOGI(TAG, "Watchdog start");
 
     //as long as we receive ping do nothing :P
-    do
-    {
-        vTaskDelay(pdMS_TO_TICKS(3 * 1000 * 60)); //
+    do {
+        vTaskDelay(pdMS_TO_TICKS(3 * 1000 * 60));  //
 
     } while (!app_state.error_state);
 
     ESP_LOGI(TAG, "Watchdog timeout");
-    powerOff(1); //sleep one second and reboot.
+    powerOff(1);  //sleep one second and reboot.
 }
 
 //////////////////////////
 // ping related stuff //
-static void test_on_ping_success(esp_ping_handle_t hdl, void *args)
-{
+static void test_on_ping_success(esp_ping_handle_t hdl, void *args) {
     // optionally, get callback arguments
     // const char* str = (const char*) args;
     // printf("%s\r\n", str); // "foo"
@@ -417,9 +392,7 @@ static void test_on_ping_success(esp_ping_handle_t hdl, void *args)
     app_state.timeout_count = 0;
 }
 
-static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args)
-{
-
+static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args) {
     app_state.timeout_count++;
 
     uint16_t seqno;
@@ -432,8 +405,7 @@ static void test_on_ping_timeout(esp_ping_handle_t hdl, void *args)
         app_state.error_state = 1;
 }
 
-static void test_on_ping_end(esp_ping_handle_t hdl, void *args)
-{
+static void test_on_ping_end(esp_ping_handle_t hdl, void *args) {
     uint32_t transmitted;
     uint32_t received;
     uint32_t total_time_ms;
@@ -444,14 +416,13 @@ static void test_on_ping_end(esp_ping_handle_t hdl, void *args)
     ESP_LOGI("PING:", "%d packets transmitted, %d received, time %dms\n", transmitted, received, total_time_ms);
 }
 
-void initialize_ping()
-{
+void initialize_ping() {
     /* convert URL to IP address */
     ip_addr_t target_addr = IPADDR4_INIT_BYTES(8, 8, 8, 8);
 
     esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
-    ping_config.target_addr = target_addr;       // target IP address
-    ping_config.count = ESP_PING_COUNT_INFINITE; // ping in infinite mode, esp_ping_stop can stop it
+    ping_config.target_addr = target_addr;        // target IP address
+    ping_config.count = ESP_PING_COUNT_INFINITE;  // ping in infinite mode, esp_ping_stop can stop it
     ping_config.interval_ms = 30 * 1000;
     ping_config.timeout_ms = 800;
     /* set callback functions */
@@ -459,24 +430,23 @@ void initialize_ping()
     cbs.on_ping_success = test_on_ping_success;
     cbs.on_ping_timeout = test_on_ping_timeout;
     cbs.on_ping_end = test_on_ping_end;
-    cbs.cb_args = NULL; // arguments that will feed to all callback functions, can be NULL
+    cbs.cb_args = NULL;  // arguments that will feed to all callback functions, can be NULL
 
     esp_ping_handle_t ping;
     esp_err_t err = esp_ping_new_session(&ping_config, &cbs, &ping);
 
-    switch (err)
-    {
-    case ESP_ERR_INVALID_ARG:
-        ESP_LOGI("PING", "Invalid arg");
-        break;
-    case ESP_FAIL:
-        ESP_LOGI("PING", "Invalid arg");
-        break;
-    case ESP_OK:
-        ESP_LOGI("PING", "OK");
+    switch (err) {
+        case ESP_ERR_INVALID_ARG:
+            ESP_LOGI("PING", "Invalid arg");
+            break;
+        case ESP_FAIL:
+            ESP_LOGI("PING", "Invalid arg");
+            break;
+        case ESP_OK:
+            ESP_LOGI("PING", "OK");
 
-    default:
-        break;
+        default:
+            break;
     }
 
     esp_ping_start(ping);

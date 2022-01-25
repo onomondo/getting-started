@@ -21,5 +21,6 @@
   },
   "idf.portWin": "COM10",
   "idf.flashType": "UART",
-  "editor.defaultFormatter": "ms-vscode.cpptools"
+  "editor.defaultFormatter": "ms-vscode.cpptools",
+  "idf.adapterTargetName": "esp32"
 }
