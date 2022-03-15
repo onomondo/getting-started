@@ -31,7 +31,9 @@
     "strstream": "c",
     "filesystem": "c",
     "event_groups.h": "c",
-    "sockets.h": "c"
+    "sockets.h": "c",
+    "string.h": "c",
+    "adc.h": "c"
   },
   "idf.portWin": "COM10",
   "idf.flashType": "UART",

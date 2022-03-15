@@ -318,16 +318,8 @@ void configure_io() {
 
 void powerOff(uint32_t RTCSleepInS) {
     esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+    adc_power_release();
     // esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-
-    // // rev. 1 missing pull down resistors...
-    // rtc_gpio_pulldown_en(BTN_0);
-    // rtc_gpio_pulldown_en(BTN_1);
-    // rtc_gpio_pulldown_en(BTN_2);
-
-    // rtc_gpio_pullup_dis(BTN_0);
-    // rtc_gpio_pullup_dis(BTN_1);
-    // rtc_gpio_pullup_dis(BTN_2);
 
     uint64_t mask = (1LL << BTN_0 | 1LL << BTN_1 | 1LL << BTN_2);
 
@@ -344,7 +336,7 @@ void powerOff(uint32_t RTCSleepInS) {
     gpio_set_level(LED_DNS, 0);
     gpio_set_level(LED_CONNECTOR, 0);
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(200));
     esp_deep_sleep_start();
 }
 
@@ -393,7 +385,8 @@ void led_task(void *param) {
 }
 
 void init_adc() {
-    adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_0);
+    // adc_gpio_init(ADC_UNIT_1, ADC1_CHANNEL_0);
+    adc_power_acquire();
     adc_char = calloc(1, sizeof(esp_adc_cal_characteristics_t));
     esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_11db, ADC_WIDTH_BIT_12, 1, adc_char);
     adc1_config_width(ADC_WIDTH_BIT_12);

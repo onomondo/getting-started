@@ -81,7 +81,7 @@ static void timer_callback(void *arg) {
             if (dce->checkNetwork(dce) != ESP_OK) {
                 reg_stats._failed_at_commands_count++;
                 if (reg_stats._failed_at_commands_count > 20) {
-                    //modem is dead. Probably.
+                    // modem is dead. Probably.
                     esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_POWERED_DOWN, NULL, 0, 0);
                 }
             }
@@ -91,7 +91,7 @@ static void timer_callback(void *arg) {
 }
 
 esp_err_t clearFPLMMN() {
-    //halt other communications
+    // halt other communications
     if (SEM_TAKE(5000)) {
         esp_modem_dce_clear_fplmn(dce);
         SEM_GIVE
@@ -119,7 +119,7 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
         case ESP_MODEM_EVENT_NETWORK_STATUS:
             if (event_data) {
                 reg_status_t *n = (reg_status_t *)event_data;
-                ESP_LOGI(TAG, "Network registration update: CREG:%d, CEREG:%d, CGREG:%d", n->CREG, n->CEREG, n->CGREG);
+                // ESP_LOGI(TAG, "Network registration update: CREG:%d, CEREG:%d, CGREG:%d", n->CREG, n->CEREG, n->CGREG);
                 // ESP_LOGI(TAG, "CREG:  %d", n->CREG);
                 // ESP_LOGI(TAG, "CGREG  %d", n->CGREG);
                 // ESP_LOGI(TAG, "CEREG  %d", n->CEREG);
@@ -140,7 +140,7 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
 
                 if (!(n->CEREG == 5 || n->CGREG == 5)) {
                     if (modemState == MODEM_ATTACHED) {
-                        //signal we lost connection
+                        // signal we lost connection
                         esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_SEARCHING, NULL, 0, 1);
                     }
                     modemState = MODEM_SEARCHING;
@@ -258,7 +258,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "GOT ip event!!!");
     } else if (event_id == IP_EVENT_PPP_LOST_IP) {
         ESP_LOGI(TAG, "Modem Disconnect from PPP Server");
-        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);  //or
+        esp_event_post_to(cellular_event_loop_hdl, CELLULAR_EVENT, CELLULAR_NOT_AVAILABLE, NULL, 0, 1);  // or
     } else if (event_id == IP_EVENT_GOT_IP6) {
         ESP_LOGI(TAG, "GOT IPv6 event!");
 
@@ -403,7 +403,7 @@ esp_err_t sendData(char *data, int len, int timeout) {
     if (!data)
         return ESP_FAIL;
 
-    //blocking socket api.
+    // blocking socket api.
     int err = send(socket_, data, len, 0);
 
     if (err < 0) {
@@ -440,7 +440,7 @@ esp_err_t dnsLookup(const char *host) {
     return ESP_OK;
 }
 
-esp_err_t killandclean() {  //TODO
+esp_err_t killandclean() {  // TODO
     closeSocket();
 
     return ESP_OK;
@@ -450,7 +450,7 @@ esp_err_t forcePowerDown() {
     if (dce) {
         esp_timer_stop(TIMER);
 
-        //effectively stops and wait for other processes to be done
+        // effectively stops and wait for other processes to be done
         if (modemState != MODEM_PPP)
             SEM_TAKE(10000);
 
@@ -478,7 +478,7 @@ esp_err_t requestPPP() {
 esp_err_t switchToPPP() {
     ESP_LOGI(TAG, "PPP requested.");
     esp_timer_stop(TIMER);
-    SEM_TAKE(9999);  //make sure no one else is pushing AT commands!
+    SEM_TAKE(9999);  // make sure no one else is pushing AT commands!
     // not 'legal' from this point!
     modemState = MODEM_PPP_REQUESTED;
 
