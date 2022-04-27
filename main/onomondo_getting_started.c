@@ -10,6 +10,7 @@
 #include "esp32/clk.h"
 #include "esp_adc_cal.h"
 #include "esp_event.h"
+#include "esp_http_client.h"
 #include "esp_log.h"
 #include "esp_pm.h"
 #include "esp_sleep.h"
@@ -37,6 +38,9 @@
 #define BTN_CONNECTORS BTN_1
 #define ESP_INTR_FLAG_DEFAULT 0
 
+/*  -- SYNC --  */
+SemaphoreHandle_t at_attatched_sem = NULL;
+
 // ESP_EVENT_DECLARE_BASE(CELLULAR_EVENT);
 ESP_EVENT_DEFINE_BASE(USER_EVENTS);
 
@@ -44,7 +48,8 @@ enum user_events {
     CLEAR_FPLMN_EVENT,
     POWER_DOWN_EVENT,
     SEND_CONNECTORS_EVENT,
-    SEND_DNS_EVENT
+    SEND_DNS_EVENT,
+    SEND_HTTP_PUT_EVENT
 };
 
 typedef struct
@@ -77,6 +82,8 @@ void led_task(void *param);
 void watchdog_task(void *param);
 static void gpio_filter_task(void *arg);
 
+void put_on_connect(void *param);
+
 // function prototypes //
 
 // handles sleep
@@ -95,9 +102,13 @@ static void IRAM_ATTR gpio_isr_handler(void *arg) {
     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
+void SimpleSend();
+
+esp_err_t err;
+
 void app_main(void) {
     // Initialize NVS. This will be needed for OTA portion...
-    esp_err_t err = nvs_flash_init();
+    err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         // 1.OTA app partition table has a smaller NVS partition size than the non-OTA
         // partition table. This size mismatch may cause NVS initialization to fail.
@@ -149,6 +160,26 @@ void app_main(void) {
     // handles button presses.
     esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);
 
+    // maegen attatchemtns
+    at_attatched_sem = xSemaphoreCreateBinary();
+    xTaskCreate(put_on_connect, "PUT_ON_CONNECT", 4000, NULL, tskIDLE_PRIORITY, NULL);
+
+    /*vTaskDelay(pdMS_TO_TICKS(5000));
+    ESP_LOGI(TAG, "---------send DNS event-----------");
+    esp_event_post(USER_EVENTS, SEND_DNS_EVENT, NULL, 0, 1);
+    vTaskDelay(pdMS_TO_TICKS(1000));*/
+
+    /*ESP_LOGI(TAG, "---------Send Data-----------");
+    esp_event_post(USER_EVENTS, SEND_CONNECTORS_EVENT, NULL, 0, 1);
+    vTaskDelay(pdMS_TO_TICKS(1000));*/
+
+    /*ESP_LOGI(TAG, "---------lets try a simple poster-----------");
+    esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    ESP_LOGI(TAG, "---------simple poster whsould be done-----------");*/
+
     return;
 }
 
@@ -159,6 +190,7 @@ static void cellular_event_handler(void *event_handler_arg, esp_event_base_t eve
             break;
         case CELLULAR_ATTACHED:
             app_state.network_available = 1;
+            xSemaphoreGive(at_attatched_sem);
             break;
         case CELLULAR_PPP_STOPPED:
             app_state.ppp_mode = 0;
@@ -171,7 +203,8 @@ static void cellular_event_handler(void *event_handler_arg, esp_event_base_t eve
             break;
         case CELLULAR_POWERED_DOWN:
             ESP_LOGI(TAG, "Modem off");
-            powerOff(0);
+
+            powerOff(2);  // 0 HACK
             break;
         case CELLULAR_NOT_AVAILABLE:
             // bad luck. Power off...
@@ -185,6 +218,7 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
     //     POWER_DOWN_EVENT,
     //     SEND_CONNECTORS_EVENT,
     //     SEND_DNS_EVENT
+    //     SEND_HTTP_PUT_EVENT
     switch (event_id) {
         case CLEAR_FPLMN_EVENT:
             if (!app_state.ppp_mode)
@@ -248,6 +282,42 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
             sprintf(host, "%d.onomondo.com", timeMs);
 
             dnsLookup(host);
+            break;
+        case SEND_HTTP_PUT_EVENT:
+            if (!app_state.ppp_mode) {
+                // start ppp and schedule event again.
+                requestPPP();
+                vTaskDelay(pdMS_TO_TICKS(200));
+
+                // hacky reschedule so users don't have to press multiple times.
+                // ppp status is posted in default event loop, so we can't block this too long.
+                esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
+
+                break;
+            }
+            const char *post_data = calloc(2000, sizeof(uint8_t));
+            char url[150];
+            uint32_t random = esp_random();
+            sprintf(url, "http://%7u.watchdog.icanhaziot.com:6000", random);
+            ESP_LOGI("HTTP(s)", "%s", url);
+
+            esp_http_client_config_t config = {.disable_auto_redirect = true,
+                                               .url = url,
+                                               .port = 6000};
+            esp_http_client_handle_t client = esp_http_client_init(&config);
+
+            esp_http_client_set_method(client, HTTP_METHOD_POST);
+
+            esp_http_client_set_post_field(client, post_data, 2000);
+            err = esp_http_client_perform(client);
+            if (err == ESP_OK) {
+                ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
+                         esp_http_client_get_status_code(client),
+                         esp_http_client_get_content_length(client));
+            } else {
+                ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+            }
+            esp_http_client_cleanup(client);
             break;
     }
 }
@@ -399,10 +469,20 @@ float get_batt_voltage() {
     return (float)esp_adc_cal_raw_to_voltage(raw, adc_char) * 2 / 1000.0;  // x2 due to voltage division..
 }
 
+void put_on_connect(void *param) {
+    xSemaphoreTake(at_attatched_sem, portMAX_DELAY);
+    esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
+
+    vTaskDelay(pdMS_TO_TICKS(1000 * 30));
+    esp_event_post(USER_EVENTS, POWER_DOWN_EVENT, NULL, 0, 1);
+
+    vTaskDelete(NULL);
+}
+
 void watchdog_task(void *param) {
     // last resort watchdog. If device has been on for too long we reboot it... ->
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10));  // 10 minutes
+    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10));  // 10 minute
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1);  // sleep one second and reboot.
