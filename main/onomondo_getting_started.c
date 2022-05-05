@@ -60,6 +60,8 @@ typedef struct
     uint8_t power_pressed;
 } app_state_t;
 
+char ICCID[24];
+
 app_state_t app_state = {.network_available = 0, .ppp_mode = 0, .modem_initialized = 0, .power_pressed = 0};
 
 static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -149,6 +151,8 @@ void app_main(void) {
     // initialize the cellular connection.
     esp_err_t status = initCellular();
     app_state.modem_initialized = 1;
+
+    getICCID(ICCID);
 
     // critical error.
     if (status != ESP_OK)  // restarts
@@ -253,9 +257,8 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
             float temp = 0, hum = 0;
             float battery = get_batt_voltage();
             int signal = getSignalQuality();
-
             tmp_read(&temp, &hum);
-            sprintf(payload, "{\"battery\": %f,\"signal\": %d,\"temperature\": %f}", battery, signal, temp);
+            sprintf(payload, "{\"battery\": %f,\"signal\": %d,\"temperature\": %f,\"ICCID\": %s}", battery, signal, temp, ICCID);
             sendData(payload, strlen(payload), 0);
             ESP_LOGI(TAG, "Transmit: %s", payload);
             break;
@@ -298,7 +301,7 @@ static void user_event_handler(void *event_handler_arg, esp_event_base_t event_b
             const char *post_data = calloc(2000, sizeof(uint8_t));
             char url[150];
             uint32_t random = esp_random();
-            sprintf(url, "http://%7u.watchdog.icanhaziot.com:6000", random);
+            sprintf(url, "http://%7u.watchdog.icanhaziot.com:6000/%s", random, ICCID);
             ESP_LOGI("HTTP(s)", "%s", url);
 
             esp_http_client_config_t config = {.disable_auto_redirect = true,

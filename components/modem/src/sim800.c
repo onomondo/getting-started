@@ -453,7 +453,10 @@ modem_dce_t *sim800_init(modem_dte_t *dte) {
 
     if (sim800_check_sim(&(esp_modem_dce->parent)) != ESP_OK)
         goto err_io;
-    // DCE_CHECK(esp_modem_dce_get_imsi_number(&(esp_modem_dce->parent)) == ESP_OK, "get imsi failed", err_io);
+    /* Get IMSI number */
+    DCE_CHECK(esp_modem_dce_get_imsi_number(&(esp_modem_dce->parent)) == ESP_OK, "get imsi failed", err_io);
+    /* Get ICCID number */
+    DCE_CHECK(esp_modem_dce_get_iccid_number(&(esp_modem_dce->parent)) == ESP_OK, "get iccid failed", err_io);
     /* Get operator name */
     DCE_CHECK(esp_modem_dce_get_operator_name(&(esp_modem_dce->parent)) == ESP_OK, "get operator name failed", err_io);
 

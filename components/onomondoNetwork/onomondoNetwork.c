@@ -328,6 +328,12 @@ esp_err_t initCellular() {
     dce = sim800_init(dte);
     modemState = MODEM_SEARCHING;
 
+    ESP_LOGI(TAG, " ~~~~~~~~~~~~~~ print some modem stuff ~~~~~~~~~~~~~~");
+    ESP_LOGI(TAG, "Modem IMEI: %s", dce->imei);
+    ESP_LOGI(TAG, "Modem IMSI: %s", dce->imsi);
+    ESP_LOGI(TAG, "Modem ICCID: %s", dce->iccid);
+    ESP_LOGI(TAG, " ~~~~~~~~~~~~~~ ");
+
     if (dce == NULL)
         return ESP_FAIL;
 
@@ -484,3 +490,11 @@ esp_err_t switchToPPP() {
 
     return esp_netif_attach(esp_netif, modem_netif_adapter);
 }
+
+void getICCID(char *ICCID) {
+    if (dce) {
+        strncpy(ICCID, dce->iccid, strlen(dce->iccid));
+    }
+};
+// void getIMEI(char *IMEI);
+// void getIMSI(char *IMSI);

@@ -1,9 +1,9 @@
 
 #include "esp_err.h"
-#include "esp_types.h"
-#include "lwip/sockets.h"
 #include "esp_event.h"
 #include "esp_timer.h"
+#include "esp_types.h"
+#include "lwip/sockets.h"
 
 #ifdef GEN_1_DEVICE
 #define RX_PIN 26
@@ -24,8 +24,7 @@
 
 ESP_EVENT_DECLARE_BASE(CELLULAR_EVENT);
 
-enum CELLULAR_EVENTS
-{
+enum CELLULAR_EVENTS {
     CELLULAR_PPP_STARTED,
     CELLULAR_PPP_STOPPED,
     CELLULAR_ATTACHED,
@@ -37,7 +36,7 @@ enum CELLULAR_EVENTS
 
 };
 
-#define TIMER_PERIOD 1000000 // period of the timer event source in microseconds
+#define TIMER_PERIOD 1000000  // period of the timer event source in microseconds
 
 esp_err_t initCellular();
 
@@ -60,3 +59,7 @@ esp_err_t forcePowerDown();
 esp_err_t dnsLookup(const char *host);
 
 esp_err_t requestPPP();
+
+void getICCID(char *ICCID);
+// void getIMEI(char *IMEI);
+// void getIMSI(char *IMSI);
