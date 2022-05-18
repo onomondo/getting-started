@@ -460,7 +460,7 @@ modem_dce_t *sim800_init(modem_dte_t *dte) {
     /* Get operator name */
     DCE_CHECK(esp_modem_dce_get_operator_name(&(esp_modem_dce->parent)) == ESP_OK, "get operator name failed", err_io);
 
-    DCE_CHECK(esp_modem_dce_get_check_attach(&(esp_modem_dce->parent)) == ESP_OK, "check attach failed", err_io);
+    // DCE_CHECK(esp_modem_dce_get_check_attach(&(esp_modem_dce->parent)) == ESP_OK, "check attach failed", err_io);
 
     sim800_set_cat1_preferred(&(esp_modem_dce->parent));
 

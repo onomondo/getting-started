@@ -151,15 +151,11 @@ void app_main(void) {
     // initialize the cellular connection.
     esp_err_t status = initCellular();
     app_state.modem_initialized = 1;
-
     getICCID(ICCID);
 
     // critical error.
     if (status != ESP_OK)  // restarts
         powerOff(1);
-
-    // handles cellular events.
-    cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
 
     // handles button presses.
     esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);
@@ -168,21 +164,8 @@ void app_main(void) {
     at_attatched_sem = xSemaphoreCreateBinary();
     xTaskCreate(put_on_connect, "PUT_ON_CONNECT", 4000, NULL, tskIDLE_PRIORITY, NULL);
 
-    /*vTaskDelay(pdMS_TO_TICKS(5000));
-    ESP_LOGI(TAG, "---------send DNS event-----------");
-    esp_event_post(USER_EVENTS, SEND_DNS_EVENT, NULL, 0, 1);
-    vTaskDelay(pdMS_TO_TICKS(1000));*/
-
-    /*ESP_LOGI(TAG, "---------Send Data-----------");
-    esp_event_post(USER_EVENTS, SEND_CONNECTORS_EVENT, NULL, 0, 1);
-    vTaskDelay(pdMS_TO_TICKS(1000));*/
-
-    /*ESP_LOGI(TAG, "---------lets try a simple poster-----------");
-    esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    esp_event_post(USER_EVENTS, SEND_HTTP_PUT_EVENT, NULL, 0, 1);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG, "---------simple poster whsould be done-----------");*/
+    // handles cellular events.
+    cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
 
     return;
 }
@@ -485,7 +468,7 @@ void put_on_connect(void *param) {
 void watchdog_task(void *param) {
     // last resort watchdog. If device has been on for too long we reboot it... ->
     ESP_LOGI(TAG, "Watchdog start");
-    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 10));  // 10 minute
+    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 4));  // 10 minute
 
     ESP_LOGI(TAG, "Watchdog timeout");
     powerOff(1);  // sleep one second and reboot.

@@ -119,7 +119,7 @@ static void modem_event_handler(void *event_handler_arg, esp_event_base_t event_
         case ESP_MODEM_EVENT_NETWORK_STATUS:
             if (event_data) {
                 reg_status_t *n = (reg_status_t *)event_data;
-                // ESP_LOGI(TAG, "Network registration update: CREG:%d, CEREG:%d, CGREG:%d", n->CREG, n->CEREG, n->CGREG);
+                ESP_LOGI(TAG, "Network registration update: CREG:%d, CEREG:%d, CGREG:%d", n->CREG, n->CEREG, n->CGREG);
                 // ESP_LOGI(TAG, "CREG:  %d", n->CREG);
                 // ESP_LOGI(TAG, "CGREG  %d", n->CGREG);
                 // ESP_LOGI(TAG, "CEREG  %d", n->CEREG);
@@ -283,6 +283,7 @@ esp_err_t initCellular() {
     ESP_ERROR_CHECK(esp_event_loop_create(&loop_args, &cellular_event_loop_hdl));
     // ESP_ERROR_CHECK(esp_event_handler_register(CELLULAR_EVENT, ESP_EVENT_ANY_ID, &cellular_event_handler, NULL));
 
+    modemState = MODEM_SEARCHING;
     cellular_set_event_handler(cellular_event_handler, ESP_EVENT_ANY_ID, NULL);
 
     at_cmd_sem = xSemaphoreCreateBinary();
@@ -326,7 +327,6 @@ esp_err_t initCellular() {
     esp_modem_netif_set_default_handlers(modem_netif_adapter, esp_netif);
 
     dce = sim800_init(dte);
-    modemState = MODEM_SEARCHING;
 
     ESP_LOGI(TAG, " ~~~~~~~~~~~~~~ print some modem stuff ~~~~~~~~~~~~~~");
     ESP_LOGI(TAG, "Modem IMEI: %s", dce->imei);

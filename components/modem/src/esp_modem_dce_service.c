@@ -424,9 +424,9 @@ esp_err_t esp_modem_dce_echo(modem_dce_t *dce, bool on) {
     dce->handle_line = esp_modem_dce_handle_response_default;
     dte->send_cmd(dte, "AT+CREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CGREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dte->send_cmd(dte, "AT+CGREG=0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CEREG=1\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
+    dte->send_cmd(dte, "AT+CEREG=0\r", MODEM_COMMAND_TIMEOUT_DEFAULT);
 
     return ESP_OK;
 err:
