@@ -38,7 +38,7 @@ enum CELLULAR_EVENTS {
 
 #define TIMER_PERIOD 1000000  // period of the timer event source in microseconds
 
-esp_err_t initCellular();
+esp_err_t initCellular(const char *apn, uint8_t doModemReset);
 
 esp_err_t openSocket(char *host, int port);
 

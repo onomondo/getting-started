@@ -389,7 +389,7 @@ err:
     return ESP_FAIL;
 }
 
-esp_err_t esp_modem_dce_power_test(modem_dce_t *dce) {
+modem_status_t esp_modem_dce_power_test(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     dce->handle_line = esp_modem_dce_handle_response_default;
     DCE_CHECK(dte->send_cmd(dte, "AT\r", 100) == ESP_OK, "send command failed", err);

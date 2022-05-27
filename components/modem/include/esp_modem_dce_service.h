@@ -19,6 +19,10 @@ extern "C" {
 
 #include "esp_modem_dce.h"
 
+typedef int32_t modem_status_t;
+#define MODEM_FAILURE (-1)
+#define MODEM_POWER (0)
+
 /**
  * @brief Indicate that processing current command has done
  *
@@ -308,7 +312,7 @@ esp_err_t esp_modem_dce_hang_up(modem_dce_t *dce);
  */
 esp_err_t esp_modem_dce_get_check_attach(modem_dce_t *dce);
 
-esp_err_t esp_modem_dce_power_test(modem_dce_t *dce);
+modem_status_t esp_modem_dce_power_test(modem_dce_t *dce);
 
 esp_err_t esp_modem_dce_attach(modem_dce_t *dce, uint8_t autoSelect);
 

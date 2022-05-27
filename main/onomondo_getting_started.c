@@ -64,6 +64,8 @@ char ICCID[24];
 
 app_state_t app_state = {.network_available = 0, .ppp_mode = 0, .modem_initialized = 0, .power_pressed = 0};
 
+RTC_DATA_ATTR int failed_modem_init_count = 0;
+
 static void cellular_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
 static void user_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -148,14 +150,20 @@ void app_main(void) {
     acc_init();
     tmp_init();
 
+    uint8_t modemShouldReset = failed_modem_init_count > 4 ? 1 : 0;
     // initialize the cellular connection.
-    esp_err_t status = initCellular();
+    esp_err_t status = initCellular(CONFIG_MODEM_APN, modemShouldReset);
+
+    if (status == ESP_FAIL) {
+        failed_modem_init_count++;
+        powerOff(1);
+
+    } else {
+        failed_modem_init_count = 0;
+    }
+
     app_state.modem_initialized = 1;
     getICCID(ICCID);
-
-    // critical error.
-    if (status != ESP_OK)  // restarts
-        powerOff(1);
 
     // handles button presses.
     esp_event_handler_register(USER_EVENTS, ESP_EVENT_ANY_ID, &user_event_handler, NULL);

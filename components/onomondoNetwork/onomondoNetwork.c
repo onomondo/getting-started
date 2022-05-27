@@ -267,7 +267,7 @@ static void on_ip_event(void *arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t initCellular() {
+esp_err_t initCellular(const char *apn, uint8_t doModemReset) {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &on_ip_event, NULL));
@@ -326,7 +326,10 @@ esp_err_t initCellular() {
     modem_netif_adapter = esp_modem_netif_setup(dte);
     esp_modem_netif_set_default_handlers(modem_netif_adapter, esp_netif);
 
-    dce = sim800_init(dte);
+    dce = sim800_init(dte, doModemReset);
+
+    if (dce == NULL)
+        return ESP_FAIL;
 
     ESP_LOGI(TAG, " ~~~~~~~~~~~~~~ print some modem stuff ~~~~~~~~~~~~~~");
     ESP_LOGI(TAG, "Modem IMEI: %s", dce->imei);
@@ -334,13 +337,9 @@ esp_err_t initCellular() {
     ESP_LOGI(TAG, "Modem ICCID: %s", dce->iccid);
     ESP_LOGI(TAG, " ~~~~~~~~~~~~~~ ");
 
-    if (dce == NULL)
-        return ESP_FAIL;
-
-    // dce->attach(dce, 0);
-
-    assert(dce != NULL);
     ESP_ERROR_CHECK(dce->set_flow_ctrl(dce, MODEM_FLOW_CONTROL_NONE));
+
+    strncpy(dce->apn, apn, sizeof(dce->apn));
 
     // Create and start the event sources
     esp_timer_create_args_t timer_args = {

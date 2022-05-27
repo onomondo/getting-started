@@ -1,6 +1,6 @@
 menu "ESP-MODEM"
 
-    config EXAMPLE_COMPONENT_MODEM_APN
+    config MODEM_APN
         string "Set Access Point Name (APN)"
         default "onomondo"
         help

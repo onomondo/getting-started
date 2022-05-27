@@ -44,6 +44,10 @@ static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce);
 esp_err_t sim800_handle_PSM_check(modem_dce_t *dce, const char *line);
 static esp_err_t sim800_check_PSM_support(modem_dce_t *dce);
 
+typedef enum { SOFT_POWER_TOGGLE,
+               HARD_RESET } power_ctl_cmd;
+void sim800_power_ctrl(power_ctl_cmd cmd);
+
 static esp_err_t sim800_handle_power_down(modem_dce_t *dce, const char *line) {
     // gpio_set_level(PWR_PIN, 0);
     // vTaskDelay(pdMS_TO_TICKS(200));
@@ -346,7 +350,7 @@ static esp_err_t sim800_deinit(modem_dce_t *dce) {
     return ESP_OK;
 }
 
-modem_dce_t *sim800_init(modem_dte_t *dte) {
+modem_dce_t *sim800_init(modem_dte_t *dte, uint8_t modem_reset_requested) {
     DCE_CHECK(dte, "DCE should bind with a DTE", err);
     /* malloc memory for esp_modem_dce object */
     esp_modem_dce_t *esp_modem_dce = calloc(1, sizeof(esp_modem_dce_t));
@@ -406,39 +410,35 @@ modem_dce_t *sim800_init(modem_dte_t *dte) {
 
     // do some power testing (e.g. can we sync.)
 
-    esp_err_t modemPower = ESP_FAIL;
+    modem_status_t modemStatus = ESP_FAIL;
     for (uint8_t i = 0; i < 2; i++) {
-        modemPower = esp_modem_dce_power_test(&(esp_modem_dce->parent));
+        modemStatus = esp_modem_dce_power_test(&(esp_modem_dce->parent));
 
-        if (modemPower == ESP_OK)
+        if (modemStatus == MODEM_POWER)
             break;
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    if (modemPower == ESP_OK)
+    if (modemStatus == MODEM_POWER)
         ESP_LOGI(DCE_TAG, "Modem is on!");
     else
         ESP_LOGI(DCE_TAG, "Modem power not detected....");
 
-    if (modemPower != ESP_OK) {
+    if (modemStatus != MODEM_POWER) {
         // power on the modem...
-
-        ESP_LOGI(DCE_TAG, "Power on modem");
-        vTaskDelay(pdMS_TO_TICKS(100));
-
-        gpio_set_level(PWR_PIN, PULSE_ON);
-
-        vTaskDelay(pdMS_TO_TICKS(1200));
-
-        gpio_set_level(PWR_PIN, PULSE_OFF);
-
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        power_ctl_cmd cmd = modem_reset_requested ? HARD_RESET : SOFT_POWER_TOGGLE;
+        sim800_power_ctrl(cmd);
 
         for (int i = 0; i < 20; i++) {
-            if (esp_modem_dce_power_test(&(esp_modem_dce->parent)) == ESP_OK)
+            if (esp_modem_dce_power_test(&(esp_modem_dce->parent)) == MODEM_POWER)
                 break;
         }
+    }
+
+    // avoid assertion failure
+    if (modemStatus == MODEM_FAILURE) {
+        return NULL;
     }
 
     /* Sync between DTE and DCE */
@@ -472,4 +472,21 @@ err_io:
     dte->dce = NULL;
 err:
     return NULL;
+}
+
+void sim800_power_ctrl(power_ctl_cmd cmd) {
+    TickType_t pin_active_high_time = cmd == SOFT_POWER_TOGGLE ? pdMS_TO_TICKS(1200) : pdMS_TO_TICKS(12000);
+
+    if (cmd == SOFT_POWER_TOGGLE)
+        ESP_LOGI(DCE_TAG, "Modem power toggle requested");
+    else
+        ESP_LOGI(DCE_TAG, "Modem hard reset requested");
+
+    gpio_set_level(PWR_PIN, PULSE_ON);
+
+    vTaskDelay(pin_active_high_time);
+
+    gpio_set_level(PWR_PIN, PULSE_OFF);
+
+    vTaskDelay(pdMS_TO_TICKS(3000));
 }

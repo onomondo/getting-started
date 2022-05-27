@@ -110,7 +110,8 @@ struct modem_dce {
     char iccid[MODEM_ICCID_LENGTH + 1];   /*!< ICCID number */
     char name[MODEM_MAX_NAME_LENGTH];     /*!< Module name */
     char oper[MODEM_MAX_OPERATOR_LENGTH]; /*!< Operator name */
-    uint8_t act;                          /*!< Access technology */
+    char apn[50];
+    uint8_t act; /*!< Access technology */
     unsigned int attached;
     bool eDRX;
     bool PSM;
