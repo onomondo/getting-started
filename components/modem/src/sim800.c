@@ -190,8 +190,8 @@ err:
 
 static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
-
-    dce->define_pdp_context(dce, 1, "IP", "onomondo");
+    // "test.hello" or "onomondo" or dce->apn
+    dce->define_pdp_context(dce, 1, "IP", dce->apn);
     // sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
     //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
     dce->handle_line = esp_modem_dce_handle_response_default;
