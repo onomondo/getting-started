@@ -191,14 +191,21 @@ err:
 static esp_err_t sim800_set_cat1_preferred(modem_dce_t *dce) {
     modem_dte_t *dte = dce->dte;
     // "test.hello" or "onomondo" or dce->apn
-    dce->define_pdp_context(dce, 1, "IP", dce->apn);
-    // sendAtCmd("AT+CBANDCFG=\"CAT-M\",3,8,20", "OK", 2, 200, 200);
-    //	if (!sendAtCmd("AT+CNMP=38", "OK", 5, 500, 500))
+    dce->define_pdp_context(dce, 1, "IP", CONFIG_MODEM_APN);
     dce->handle_line = esp_modem_dce_handle_response_default;
-    // dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",3,8,20\r", 500);
-    dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",1,2,3,4,5,8,12,13,14,18,19,20,28\r", 500);
+    dte->send_cmd(dte, "AT+CBANDCFG=\"CAT-M\",3,8,20\r", 500);
+
+    const char *ACT_STRING =
+#if defined(CONFIG_ACT_AUTO)
+        "AT+CNMP=2\r";
+#elif defined(CONFIG_ACT_2G)
+        "AT+CNMP=13\r";
+#else
+        "AT+CNMP=38\r";
+#endif
+
     dce->handle_line = esp_modem_dce_handle_response_default;
-    dte->send_cmd(dte, "AT+CNMP=51\r", 500);  // 38 lte only, 51 both // 13 gsm only // 2 automatic
+    dte->send_cmd(dte, ACT_STRING, 500);  // 38 lte only, 51 both // 13 gsm only // 2 automatic
     dce->handle_line = esp_modem_dce_handle_response_default;
     dte->send_cmd(dte, "AT+CMNB=1\r", 500);  // cat m1 preferred over nb-iot
     dce->handle_line = esp_modem_dce_handle_response_default;

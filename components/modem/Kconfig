@@ -6,4 +6,23 @@ menu "ESP-MODEM"
         help
             Logical name which is used to select the GGSN or the external packet data network.
 
+
+    choice ACCESS_TECHNOLOGY
+        prompt "choose preferred access technology"
+        default ACT_AUTO
+
+        config ACT_AUTO
+            bool "automatic"
+            help
+                Automatic selection of the preferred access technology.
+        
+        config ACT_GPRS
+            bool "GPRS"
+            help
+                Use GPRS access technology (2G)
+        config ACT_LTE
+            bool "LTE"
+            help
+                Use LTE access technology (4G)
+    endchoice
 endmenu
