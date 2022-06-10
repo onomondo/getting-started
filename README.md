@@ -5,7 +5,8 @@ Example forked from [esp-idf repo](https://github.com/espressif/esp-idf/tree/mas
 ## What is this?
 The kit is designed to showcase some of the features provided by Onomondo. Already a customer? Head over to [app.onomondo.com/getting-started](https://app.onomondo.com/getting-started) to get a guided tour of the platform and to see the data packets in real-time. 
 
-<img src="docs/device.jpg?raw=true" width="800" />
+![test2](https://user-images.githubusercontent.com/46489969/173022911-4be67fd5-9a36-4a84-95a0-610666c26827.gif)
+
 
 ### Onomondo Connectors 
 Specifically, this example is powered by the Onomondo Connectors. It removes complexity (i.e. Cloud SDK) from the device and let the network handle it. Check out the code snippet below - would you have guessed that this is fully encrypted and integrated into the *Azure IoT Hub*? Get more info on Connectors [here](https://help.onomondo.com/what-are-onomondo-connectors). 
